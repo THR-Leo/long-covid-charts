@@ -12,20 +12,17 @@
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    :root { --chart-left: 140px; }
-
     html, body { margin:0; padding:0; background:#fff; }
     body {
       font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       color:#111;
-      overflow: hidden;
+      overflow: hidden; /* prevents internal scrollbars */
     }
 
-    /* Tighter vertical padding to eliminate mobile white gaps */
-    .wrap { padding: 12px 12px 12px; }
+    .wrap { padding: 12px 12px 10px; }
 
     .chart-title {
-      margin: 0 0 8px;  /* tighter */
+      margin: 0 0 8px;
       font-size: 22px;
       line-height: 1.15;
       font-weight: 700;
@@ -35,9 +32,7 @@
     #chart2 { width: 100%; }
 
     .legend {
-      margin: 8px 0 0; /* was 10px */
-      padding-left: var(--chart-left);
-      padding-right: 8px;
+      margin: 8px 0 0;
       display: flex;
       flex-wrap: wrap;
       gap: 10px 16px;
@@ -50,113 +45,96 @@
     .swatch { width:18px; height:12px; border-radius:2px; display:inline-block; }
 
     .caption {
-      margin: 6px 0 0; /* was 10px */
-      padding-left: var(--chart-left);
-      padding-right: 8px;
+      margin: 6px 0 0;
       text-align: left;
       font-size: 14px;
       color: #333;
     }
 
     @media (max-width: 420px) {
-      .wrap { padding: 10px 12px 10px; }
+      .wrap { padding: 10px 12px 8px; }
       .chart-title { font-size: 18px; margin-bottom: 6px; }
-      .legend { font-size: 13px; margin-top: 8px; }
+      .legend { font-size: 13px; margin-top: 6px; }
       .caption { font-size: 13px; margin-top: 6px; }
     }
   </style>
 
   <script>
-    function computeLeftPadding(w) {
-      if (w < 360) return 105;
-      if (w < 420) return 115;
-      if (w < 520) return 125;
-      return 140;
-    }
-
-    function computeChartHeight(w) {
-      // Key change: reduce mobile height so there’s no big gap below the title
-      if (w < 360) return 340;
-      if (w < 420) return 360;
-      if (w < 520) return 400;
-      return 500;
-    }
-
-    function buildData(withAnnotations) {
-      const base = [
-        ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-        ['Trans People', 42, 14, 3, 40],
-        ['Other', 27, 39, 2, 32],
-        ['Cis Women', 10, 24, 9, 57],
-        ['Cis Men', 9, 20, 6, 66]
-      ];
-
-      if (!withAnnotations) return google.visualization.arrayToDataTable(base);
-
-      return google.visualization.arrayToDataTable([
-        ['Group',
-          'Severe Symptoms',   { role:'annotation' },
-          'Moderate Symptoms', { role:'annotation' },
-          'Minimal Symptoms',  { role:'annotation' },
-          'No Response',       { role:'annotation' }
-        ],
-        ['Trans People', 42, '42%', 14, '14%', 3, '3%', 40, '40%'],
-        ['Other',       27, '27%', 39, '39%', 2, '2%', 32, '32%'],
-        ['Cis Women',   10, '10%', 24, '24%', 9, '9%', 57, '57%'],
-        ['Cis Men',      9, '9%',  20, '20%', 6, '6%', 66, '66%']
-      ]);
-    }
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
     function drawChart2() {
+      const wrap = document.querySelector('.wrap');
       const el = document.getElementById('chart2');
-      const w = el.parentElement.clientWidth || 700;
-      const left = computeLeftPadding(w);
-      document.documentElement.style.setProperty('--chart-left', left + 'px');
+      const titleEl = document.querySelector('.chart-title');
+      const legendEl = document.querySelector('.legend');
+      const capEl = document.querySelector('.caption');
 
-      const isNarrow = w < 520;
-      const data = buildData(!isNarrow);
+      const w = wrap.clientWidth || 700;
+      const isMobile = w < 520;
+
+      // Fill available iframe height to avoid blank space inside the Wix HTML component.
+      const wrapStyles = getComputedStyle(wrap);
+      const padTop = parseFloat(wrapStyles.paddingTop) || 0;
+      const padBottom = parseFloat(wrapStyles.paddingBottom) || 0;
+
+      const titleH = titleEl ? titleEl.getBoundingClientRect().height : 0;
+      const legendH = legendEl ? legendEl.getBoundingClientRect().height : 0;
+      const capH = capEl ? capEl.getBoundingClientRect().height : 0;
+
+      // spacing between blocks (title->chart, chart->legend, legend->caption)
+      const chromeH = padTop + padBottom + titleH + legendH + capH + (isMobile ? 18 : 22);
+
+      const minH = isMobile ? 320 : 340;
+      const maxH = isMobile ? 520 : 560;
+
+      const targetChartH = clamp((window.innerHeight || 700) - chromeH, minH, maxH);
+
+      // Stacked vertical column chart
+      const data = google.visualization.arrayToDataTable([
+        ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+        ['Trans\nPeople', 42, 14, 3, 40],
+        ['Other',        27, 39, 2, 32],
+        ['Cis\nWomen',   10, 24, 9, 57],
+        ['Cis Men',       9, 20, 6, 66]
+      ]);
+
+      // Leave room for multi-line x labels on mobile; y axis is numeric so left margin can be small.
+      const left = isMobile ? 42 : 52;
+      const bottom = isMobile ? 56 : 50;
+      const top = 6;
 
       const options = {
-        height: computeChartHeight(w),
+        height: Math.round(targetChartH),
         isStacked: true,
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
-        hAxis: {
+        vAxis: {
           minValue: 0,
           maxValue: 100,
           ticks: [0, 20, 40, 60, 80, 100],
-          textStyle: { fontName: 'Source Sans 3', fontSize: isNarrow ? 12 : 14 }
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 12 : 14 }
         },
 
-        vAxis: {
-          textStyle: { fontName: 'Source Sans 3', fontSize: isNarrow ? 16 : 18 }
+        hAxis: {
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 14 : 14 }
         },
 
-        annotations: {
-          alwaysOutside: false,
-          textStyle: {
-            fontName: 'Source Sans 3',
-            fontSize: isNarrow ? 12 : 16,
-            color: '#FFFFFF',
-            auraColor: 'transparent',
-            auraWidth: 0
-          }
-        },
-
-        // Slimmer bars reduces vertical footprint on mobile
-        bar: { groupWidth: isNarrow ? '54%' : '72%' },
+        bar: { groupWidth: isMobile ? '62%' : '68%' },
 
         chartArea: {
           left: left,
-          right: isNarrow ? 18 : 24,
-          top: 2,                 // tighter = removes blank under title
-          bottom: isNarrow ? 32 : 42
-        }
+          right: isMobile ? 12 : 18,
+          top: top,
+          bottom: bottom
+        },
+
+        // Keep segments clean on mobile; tooltips still provide values.
+        tooltip: { textStyle: { fontName: 'Source Sans 3', fontSize: 13 } }
       };
 
-      new google.visualization.BarChart(el).draw(data, options);
+      new google.visualization.ColumnChart(el).draw(data, options);
     }
 
     function init() {
