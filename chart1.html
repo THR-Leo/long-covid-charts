@@ -1,109 +1,142 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Graph 1</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chart 1</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
 
-    <style>
-      :root { --chart-left: 140px; }
+  <style>
+    :root { --chart-left: 130px; }
 
-      html, body { margin: 0; padding: 0; }
-      body { font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    html, body { margin:0; padding:0; background:#fff; }
+    body {
+      font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:#111;
+    }
 
-      .wrap { width: 100%; }
+    /* Provide breathing room inside Wix iframe on mobile */
+    .wrap { padding: 14px 12px 18px; }
 
-      /* Let the chart fill the iframe width */
-      #chart1 { width: 100%; }
+    .chart-title {
+      margin: 0 0 10px;
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 700;
+      text-align: left;
+    }
 
-      .caption {
-        margin: 10px 0 0;
-        padding-left: var(--chart-left);
-        padding-right: 16px;
-        text-align: left;
-        font-size: 14px;
-        color: #333;
-      }
-    </style>
+    #chart1 { width: 100%; }
 
-    <script>
+    .caption {
+      margin: 10px 0 0;
+      padding-left: var(--chart-left);
+      padding-right: 8px;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+    }
+
+    @media (max-width: 420px) {
+      .chart-title { font-size: 18px; }
+      .wrap { padding-left: 12px; padding-right: 12px; }
+      .caption { font-size: 13px; }
+    }
+  </style>
+
+  <script>
+    function computeLeftPadding(w) {
+      // Left margin for y-axis labels; keeps labels readable on mobile without stealing all width
+      if (w < 360) return 105;
+      if (w < 420) return 115;
+      if (w < 520) return 125;
+      return 140;
+    }
+
+    function drawChart1() {
+      const el = document.getElementById('chart1');
+      const w = el.parentElement.clientWidth || 700;
+      const left = computeLeftPadding(w);
+      document.documentElement.style.setProperty('--chart-left', left + 'px');
+
+      const isMobile = w < 520;
+
+      const data = google.visualization.arrayToDataTable([
+        ['Group', 'Percent', { role: 'annotation' }],
+        ['Trans People', 46, '46%'],
+        ['Other', 37, '37%'],
+        ['Cis Women', 32, '32%'],
+        ['Cis Men', 22, '22%']
+      ]);
+
+      const options = {
+        height: isMobile ? 460 : 440,
+        legend: { position: 'none' },
+        backgroundColor: 'transparent',
+        colors: ['#000F46'],
+
+        hAxis: {
+          minValue: 0,
+          maxValue: 50,
+          ticks: [0,10,20,30,40,50],
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 12 : 14 }
+        },
+
+        vAxis: {
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 16 : 18 }
+        },
+
+        annotations: {
+          alwaysOutside: true,
+          textStyle: {
+            fontName: 'Source Sans 3',
+            fontSize: isMobile ? 12 : 14,
+            color: '#111',
+            auraColor: 'transparent',
+            auraWidth: 0
+          }
+        },
+
+        bar: { groupWidth: isMobile ? '64%' : '72%' },
+
+        chartArea: {
+          left: left,
+          right: isMobile ? 28 : 36,   // extra right breathing room on mobile
+          top: 10,
+          bottom: 36
+        }
+      };
+
+      new google.visualization.BarChart(el).draw(data, options);
+    }
+
+    function init() {
       google.charts.load('current', { packages: ['corechart'] });
-      google.charts.setOnLoadCallback(draw);
+      google.charts.setOnLoadCallback(drawChart1);
 
-      function computeLeftPadding(containerWidth) {
-        // Responsive left padding: enough for labels, but not wasteful on narrow columns.
-        return Math.max(110, Math.min(160, Math.round(containerWidth * 0.22)));
-      }
-
-      function draw() {
-        const el = document.getElementById('chart1');
-        const w = el.parentElement.clientWidth || 800;
-        const left = computeLeftPadding(w);
-
-        // Keep caption aligned with the chart area automatically
-        document.documentElement.style.setProperty('--chart-left', left + 'px');
-
-        const data = google.visualization.arrayToDataTable([
-          ['Group', 'Percent', { role: 'annotation' }],
-          ['Trans People', 46, '46%'],
-          ['Other', 37, '37%'],
-          ['Cis Women', 32, '32%'],
-          ['Cis Men', 22, '22%']
-        ]);
-
-        const options = {
-          title: 'Which genders are most likely to develop long COVID?',
-          titleTextStyle: { fontName: 'Source Sans 3', fontSize: 22, bold: true },
-
-          height: 460,                 // tighter than before
-          legend: { position: 'none' },
-
-          hAxis: {
-            minValue: 0,
-            maxValue: 50,
-            ticks: [0, 10, 20, 30, 40, 50],
-            textStyle: { fontName: 'Source Sans 3', fontSize: 14 }
-          },
-          vAxis: { textStyle: { fontName: 'Source Sans 3', fontSize: 18 } },
-
-          annotations: {
-            alwaysOutside: true,
-            textStyle: { fontName: 'Source Sans 3', fontSize: 16, color: '#000' }
-          },
-
-          bar: { groupWidth: '72%' },
-          colors: ['#000F46'],
-
-          chartArea: {
-            left: left,
-            right: 24,
-            top: 78,
-            bottom: 48
-          },
-
-          backgroundColor: 'transparent'
-        };
-
-        new google.visualization.BarChart(el).draw(data, options);
-      }
-
-      // Redraw on resize (important inside iframes)
+      let t;
       window.addEventListener('resize', () => {
-        if (window.google && google.visualization) draw();
+        clearTimeout(t);
+        t = setTimeout(() => {
+          if (window.google && google.visualization) drawChart1();
+        }, 120);
       });
-    </script>
-  </head>
+    }
 
-  <body>
-    <div class="wrap">
-      <div id="chart1"></div>
-      <div class="caption">Long COVID symptom severity, by gender, December 2022</div>
-    </div>
-  </body>
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <h2 class="chart-title">Which genders are most likely to develop long COVID?</h2>
+    <div id="chart1"></div>
+    <div class="caption">Long COVID symptom severity, by gender, December 2022</div>
+  </div>
+</body>
 </html>
