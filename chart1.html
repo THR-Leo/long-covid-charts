@@ -18,68 +18,61 @@
     body {
       font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       color:#111;
+      overflow: hidden; /* helps avoid any stray scrollbars inside iframes */
     }
 
-    /* Keep overall height tight so iframe height can show everything without scrollbars */
-    .wrap { padding: 12px 12px 12px; box-sizing: border-box; }
+    /* Tighter vertical padding to reduce whitespace on mobile */
+    .wrap { padding: 12px 12px 12px; }
 
     .chart-title {
-      margin: 0 0 8px;
+      margin: 0 0 8px;  /* was 10px */
       font-size: 22px;
       line-height: 1.15;
       font-weight: 700;
       text-align: left;
-
-      /* Force wrapping (prevents any truncation behaviours) */
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-      word-break: normal;
     }
 
     #chart1 { width: 100%; }
 
     .caption {
-      margin: 6px 0 0;
+      margin: 6px 0 0; /* was 10px */
       padding-left: var(--chart-left);
-      padding-right: 6px;
+      padding-right: 8px;
       text-align: left;
       font-size: 14px;
-      line-height: 1.35;
       color: #333;
     }
 
     @media (max-width: 420px) {
-      .chart-title { font-size: 20px; }
-      .wrap { padding: 10px 10px 10px; }
-      .caption { font-size: 13px; }
+      .wrap { padding: 10px 12px 10px; }
+      .chart-title { font-size: 18px; margin-bottom: 6px; }
+      .caption { font-size: 13px; margin-top: 6px; }
     }
   </style>
 
   <script>
-    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
-
     function computeLeftPadding(w) {
-      // Slightly smaller on mobile to gain plot width, while keeping labels readable
-      if (w < 360) return 92;
-      if (w < 420) return 102;
-      if (w < 520) return 112;
+      if (w < 360) return 105;
+      if (w < 420) return 115;
+      if (w < 520) return 125;
       return 140;
+    }
+
+    function computeChartHeight(w) {
+      // Key change: reduce mobile height so Wix doesn’t leave large gaps
+      if (w < 360) return 360;
+      if (w < 420) return 380;
+      if (w < 520) return 410;
+      return 440;
     }
 
     function drawChart1() {
       const el = document.getElementById('chart1');
-      const wrap = el.parentElement;
-      const w = wrap.clientWidth || 700;
-
+      const w = el.parentElement.clientWidth || 700;
       const left = computeLeftPadding(w);
       document.documentElement.style.setProperty('--chart-left', left + 'px');
 
       const isMobile = w < 520;
-
-      // Chart height tuned to reduce iframe scroll risk:
-      // - scales a bit with width, but clamped so it stays compact
-      const chartHeight = isMobile ? clamp(Math.round(w * 0.90), 300, 380) : 420;
 
       const data = google.visualization.arrayToDataTable([
         ['Group', 'Percent', { role: 'annotation' }],
@@ -90,7 +83,7 @@
       ]);
 
       const options = {
-        height: chartHeight,
+        height: computeChartHeight(w),
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         colors: ['#000F46'],
@@ -103,7 +96,7 @@
         },
 
         vAxis: {
-          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 15 : 18 }
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 16 : 18 }
         },
 
         annotations: {
@@ -117,14 +110,14 @@
           }
         },
 
-        bar: { groupWidth: isMobile ? '56%' : '66%' },
+        // Slightly slimmer bars on mobile reduces vertical space
+        bar: { groupWidth: isMobile ? '56%' : '72%' },
 
         chartArea: {
           left: left,
-          // Add right breathing room on mobile so labels don’t kiss the edge
-          right: isMobile ? 34 : 36,
-          top: 6,
-          bottom: 30
+          right: isMobile ? 28 : 36,
+          top: 2,              // tighter to reduce gap under title
+          bottom: isMobile ? 30 : 36
         }
       };
 
@@ -140,7 +133,7 @@
         clearTimeout(t);
         t = setTimeout(() => {
           if (window.google && google.visualization) drawChart1();
-        }, 150);
+        }, 120);
       });
     }
 
