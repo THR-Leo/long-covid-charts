@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Graph 2</title>
 
-    <!-- Source Sans 3 (loads on most devices; falls back if blocked) -->
+    <!-- Source Sans 3 (loads for most visitors; falls back if blocked) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,9 +13,27 @@
     <script src="https://www.gstatic.com/charts/loader.js"></script>
 
     <style>
-      body { margin: 0; font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+      :root {
+        /* Keep this in sync with options.chartArea.left */
+        --chart-left: 180px;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      }
+
       .wrap { padding: 0; }
-      .caption { margin: 12px 0 0; text-align: center; font-size: 14px; color: #333; }
+
+      /* Caption aligned to the same left edge as the bars (chartArea.left) */
+      .caption {
+        margin: 12px 0 0;
+        padding-left: var(--chart-left);
+        padding-right: 16px;
+        text-align: left;
+        font-size: 14px;
+        color: #333;
+      }
     </style>
 
     <script>
@@ -44,8 +62,10 @@
           height: 560,
           isStacked: true,
 
+          /* Legend left-aligned to the chart area */
           legend: {
             position: 'bottom',
+            alignment: 'start',
             textStyle: { fontName: 'Source Sans 3', fontSize: 16 }
           },
 
@@ -55,12 +75,9 @@
             ticks: [0, 20, 40, 60, 80, 100],
             textStyle: { fontName: 'Source Sans 3', fontSize: 14 }
           },
+          vAxis: { textStyle: { fontName: 'Source Sans 3', fontSize: 18 } },
 
-          vAxis: {
-            textStyle: { fontName: 'Source Sans 3', fontSize: 18 }
-          },
-
-          // Force annotations to be consistent: white text, no “halo/outline”
+          /* White annotation labels, no outline/halo */
           annotations: {
             alwaysOutside: false,
             textStyle: {
@@ -74,11 +91,12 @@
 
           bar: { groupWidth: '70%' },
 
-          // Colours in the same order as the series:
-          // Severe, Moderate, Minimal, No Response
+          /* Colours in series order: Severe, Moderate, Minimal, No Response */
           colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
+          /* Keep this left value in sync with --chart-left above */
           chartArea: { left: 180, right: 40, top: 80, bottom: 90 },
+
           backgroundColor: 'transparent'
         };
 
@@ -88,7 +106,7 @@
 
       // Redraw on resize so it stays responsive in iframes
       window.addEventListener('resize', () => {
-        if (google && google.visualization) draw();
+        if (window.google && google.visualization) draw();
       });
     </script>
   </head>
