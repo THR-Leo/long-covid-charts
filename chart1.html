@@ -20,51 +20,66 @@
       color:#111;
     }
 
-    /* Provide breathing room inside Wix iframe on mobile */
-    .wrap { padding: 14px 12px 18px; }
+    /* Keep overall height tight so iframe height can show everything without scrollbars */
+    .wrap { padding: 12px 12px 12px; box-sizing: border-box; }
 
     .chart-title {
-      margin: 0 0 10px;
+      margin: 0 0 8px;
       font-size: 22px;
       line-height: 1.15;
       font-weight: 700;
       text-align: left;
+
+      /* Force wrapping (prevents any truncation behaviours) */
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: normal;
     }
 
     #chart1 { width: 100%; }
 
     .caption {
-      margin: 10px 0 0;
+      margin: 6px 0 0;
       padding-left: var(--chart-left);
-      padding-right: 8px;
+      padding-right: 6px;
       text-align: left;
       font-size: 14px;
+      line-height: 1.35;
       color: #333;
     }
 
     @media (max-width: 420px) {
-      .chart-title { font-size: 18px; }
-      .wrap { padding-left: 12px; padding-right: 12px; }
+      .chart-title { font-size: 20px; }
+      .wrap { padding: 10px 10px 10px; }
       .caption { font-size: 13px; }
     }
   </style>
 
   <script>
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
     function computeLeftPadding(w) {
-      // Left margin for y-axis labels; keeps labels readable on mobile without stealing all width
-      if (w < 360) return 105;
-      if (w < 420) return 115;
-      if (w < 520) return 125;
+      // Slightly smaller on mobile to gain plot width, while keeping labels readable
+      if (w < 360) return 92;
+      if (w < 420) return 102;
+      if (w < 520) return 112;
       return 140;
     }
 
     function drawChart1() {
       const el = document.getElementById('chart1');
-      const w = el.parentElement.clientWidth || 700;
+      const wrap = el.parentElement;
+      const w = wrap.clientWidth || 700;
+
       const left = computeLeftPadding(w);
       document.documentElement.style.setProperty('--chart-left', left + 'px');
 
       const isMobile = w < 520;
+
+      // Chart height tuned to reduce iframe scroll risk:
+      // - scales a bit with width, but clamped so it stays compact
+      const chartHeight = isMobile ? clamp(Math.round(w * 0.90), 300, 380) : 420;
 
       const data = google.visualization.arrayToDataTable([
         ['Group', 'Percent', { role: 'annotation' }],
@@ -75,7 +90,7 @@
       ]);
 
       const options = {
-        height: isMobile ? 460 : 440,
+        height: chartHeight,
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         colors: ['#000F46'],
@@ -88,7 +103,7 @@
         },
 
         vAxis: {
-          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 16 : 18 }
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 15 : 18 }
         },
 
         annotations: {
@@ -102,13 +117,14 @@
           }
         },
 
-        bar: { groupWidth: isMobile ? '64%' : '72%' },
+        bar: { groupWidth: isMobile ? '56%' : '66%' },
 
         chartArea: {
           left: left,
-          right: isMobile ? 28 : 36,   // extra right breathing room on mobile
-          top: 10,
-          bottom: 36
+          // Add right breathing room on mobile so labels don’t kiss the edge
+          right: isMobile ? 34 : 36,
+          top: 6,
+          bottom: 30
         }
       };
 
@@ -124,7 +140,7 @@
         clearTimeout(t);
         t = setTimeout(() => {
           if (window.google && google.visualization) drawChart1();
-        }, 120);
+        }, 150);
       });
     }
 
