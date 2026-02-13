@@ -16,13 +16,13 @@
     body {
       font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       color:#111;
-      overflow: hidden; /* prevents internal scrollbars */
+      overflow: hidden; /* helps prevent Wix iframe scrollbars */
     }
 
-    .wrap { padding: 12px 12px 10px; }
+    .wrap { padding: 14px 12px 18px; }
 
     .chart-title {
-      margin: 0 0 8px;
+      margin: 0 0 10px;
       font-size: 22px;
       line-height: 1.15;
       font-weight: 700;
@@ -32,7 +32,7 @@
     #chart2 { width: 100%; }
 
     .legend {
-      margin: 8px 0 0;
+      margin: 10px 0 0;
       display: flex;
       flex-wrap: wrap;
       gap: 10px 16px;
@@ -45,93 +45,65 @@
     .swatch { width:18px; height:12px; border-radius:2px; display:inline-block; }
 
     .caption {
-      margin: 6px 0 0;
+      margin: 10px 0 0;
       text-align: left;
       font-size: 14px;
       color: #333;
     }
 
     @media (max-width: 420px) {
-      .wrap { padding: 10px 12px 8px; }
-      .chart-title { font-size: 18px; margin-bottom: 6px; }
-      .legend { font-size: 13px; margin-top: 6px; }
-      .caption { font-size: 13px; margin-top: 6px; }
+      .chart-title { font-size: 18px; }
+      .legend { font-size: 13px; }
+      .caption { font-size: 13px; }
     }
   </style>
 
   <script>
-    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
-
     function drawChart2() {
-      const wrap = document.querySelector('.wrap');
       const el = document.getElementById('chart2');
-      const titleEl = document.querySelector('.chart-title');
-      const legendEl = document.querySelector('.legend');
-      const capEl = document.querySelector('.caption');
+      const w = el.parentElement.clientWidth || 700;
 
-      const w = wrap.clientWidth || 700;
       const isMobile = w < 520;
 
-      // Fill available iframe height to avoid blank space inside the Wix HTML component.
-      const wrapStyles = getComputedStyle(wrap);
-      const padTop = parseFloat(wrapStyles.paddingTop) || 0;
-      const padBottom = parseFloat(wrapStyles.paddingBottom) || 0;
-
-      const titleH = titleEl ? titleEl.getBoundingClientRect().height : 0;
-      const legendH = legendEl ? legendEl.getBoundingClientRect().height : 0;
-      const capH = capEl ? capEl.getBoundingClientRect().height : 0;
-
-      // spacing between blocks (title->chart, chart->legend, legend->caption)
-      const chromeH = padTop + padBottom + titleH + legendH + capH + (isMobile ? 18 : 22);
-
-      const minH = isMobile ? 320 : 340;
-      const maxH = isMobile ? 520 : 560;
-
-      const targetChartH = clamp((window.innerHeight || 700) - chromeH, minH, maxH);
-
-      // Stacked vertical column chart
+      // IMPORTANT: data is preserved exactly as provided (even if rows sum to 99 or 101)
       const data = google.visualization.arrayToDataTable([
         ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-        ['Trans\nPeople', 42, 14, 3, 40],
-        ['Other',        27, 39, 2, 32],
-        ['Cis\nWomen',   10, 24, 9, 57],
-        ['Cis Men',       9, 20, 6, 66]
+        ['Trans People', 42, 14, 3, 40], // 99 total (kept as-is)
+        ['Other', 27, 39, 2, 32],        // 100 total
+        ['Cis Women', 10, 24, 9, 57],    // 100 total
+        ['Cis Men', 9, 20, 6, 66]        // 101 total (kept as-is)
       ]);
 
-      // Leave room for multi-line x labels on mobile; y axis is numeric so left margin can be small.
-      const left = isMobile ? 42 : 52;
-      const bottom = isMobile ? 56 : 50;
-      const top = 6;
-
+      // Height tuned so the chart + legend + caption fit comfortably in typical Wix embed heights.
+      // The key fix for the “big gap under title on mobile” is vAxis.viewWindow forcing 0–100.
       const options = {
-        height: Math.round(targetChartH),
+        height: isMobile ? 460 : 420,
         isStacked: true,
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
         vAxis: {
-          minValue: 0,
-          maxValue: 100,
+          // This removes the big blank space above the columns when totals are 99/101:
+          viewWindowMode: 'explicit',
+          viewWindow: { min: 0, max: 100 },
           ticks: [0, 20, 40, 60, 80, 100],
-          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 12 : 14 }
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 12 : 13 }
         },
 
         hAxis: {
-          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 14 : 14 }
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 16 : 14 }
         },
 
-        bar: { groupWidth: isMobile ? '62%' : '68%' },
+        bar: { groupWidth: isMobile ? '62%' : '60%' },
 
+        // Keep plot area tight to reduce vertical dead space
         chartArea: {
-          left: left,
-          right: isMobile ? 12 : 18,
-          top: top,
-          bottom: bottom
-        },
-
-        // Keep segments clean on mobile; tooltips still provide values.
-        tooltip: { textStyle: { fontName: 'Source Sans 3', fontSize: 13 } }
+          left: isMobile ? 18 : 26,
+          right: isMobile ? 10 : 14,
+          top: 8,
+          bottom: 64
+        }
       };
 
       new google.visualization.ColumnChart(el).draw(data, options);
@@ -157,6 +129,7 @@
 <body>
   <div class="wrap">
     <h2 class="chart-title">Which genders are most likely to experience severe long COVID?</h2>
+
     <div id="chart2"></div>
 
     <div class="legend" aria-label="Legend">
