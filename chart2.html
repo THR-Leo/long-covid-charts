@@ -1,173 +1,190 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Graph 2</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chart 2</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
 
-    <style>
-      :root { --chart-left: 140px; }
+  <style>
+    :root { --chart-left: 140px; }
 
-      html, body {
-        margin: 0;
-        padding: 0;
-        background: #ffffff;
+    html, body { margin:0; padding:0; background:#fff; }
+    body {
+      font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:#111;
+    }
+
+    .wrap { padding: 14px 12px 18px; }
+
+    .chart-title {
+      margin: 0 0 10px;
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    #chart2 { width: 100%; }
+
+    .legend {
+      margin: 10px 0 0;
+      padding-left: var(--chart-left);
+      padding-right: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      align-items: center;
+      font-size: 14px;
+      color: #111;
+    }
+
+    .legend-item { display:inline-flex; align-items:center; gap:8px; }
+    .swatch { width:18px; height:12px; border-radius:2px; display:inline-block; }
+
+    .caption {
+      margin: 10px 0 0;
+      padding-left: var(--chart-left);
+      padding-right: 8px;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+    }
+
+    @media (max-width: 420px) {
+      .chart-title { font-size: 18px; }
+      .legend { font-size: 13px; }
+      .caption { font-size: 13px; }
+    }
+  </style>
+
+  <script>
+    function computeLeftPadding(w) {
+      if (w < 360) return 105;
+      if (w < 420) return 115;
+      if (w < 520) return 125;
+      return 140;
+    }
+
+    function buildData(withAnnotations) {
+      const base = [
+        ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+        ['Trans People', 42, 14, 3, 40],
+        ['Other', 27, 39, 2, 32],
+        ['Cis Women', 10, 24, 9, 57],
+        ['Cis Men', 9, 20, 6, 66]
+      ];
+
+      if (!withAnnotations) {
+        return google.visualization.arrayToDataTable(base);
       }
 
-      body {
-        font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-        color: #111;
-      }
+      // Add annotation columns so labels show on desktop/tablet width
+      return google.visualization.arrayToDataTable([
+        ['Group',
+          'Severe Symptoms',   { role:'annotation' },
+          'Moderate Symptoms', { role:'annotation' },
+          'Minimal Symptoms',  { role:'annotation' },
+          'No Response',       { role:'annotation' }
+        ],
+        ['Trans People', 42, '42%', 14, '14%', 3, '3%', 40, '40%'],
+        ['Other',       27, '27%', 39, '39%', 2, '2%', 32, '32%'],
+        ['Cis Women',   10, '10%', 24, '24%', 9, '9%', 57, '57%'],
+        ['Cis Men',      9, '9%',  20, '20%', 6, '6%', 66, '66%']
+      ]);
+    }
 
-      .wrap { width: 100%; }
+    function drawChart2() {
+      const el = document.getElementById('chart2');
+      const w = el.parentElement.clientWidth || 700;
+      const left = computeLeftPadding(w);
+      document.documentElement.style.setProperty('--chart-left', left + 'px');
 
-      #chart2 { width: 100%; }
+      const isNarrow = w < 520;
 
-      /* Custom legend aligned to chart area left edge */
-      .legend {
-        margin: 8px 0 0;
-        padding-left: var(--chart-left);
-        padding-right: 16px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px 22px;
-        align-items: center;
-        font-size: 14px;
-        color: #111;
-      }
+      // On narrow screens, remove annotations to prevent collisions/overlap
+      const data = buildData(!isNarrow);
 
-      .legend-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
+      const options = {
+        height: isNarrow ? 560 : 500,
+        isStacked: true,
+        legend: { position: 'none' },
+        backgroundColor: 'transparent',
+        colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
-      .swatch {
-        width: 18px;
-        height: 12px;
-        border-radius: 2px;
-        display: inline-block;
-      }
+        hAxis: {
+          minValue: 0,
+          maxValue: 100,
+          ticks: isNarrow ? [0, 20, 40, 60, 80, 100] : [0, 20, 40, 60, 80, 100],
+          textStyle: { fontName: 'Source Sans 3', fontSize: isNarrow ? 12 : 14 }
+        },
 
-      .caption {
-        margin: 10px 0 0;
-        padding-left: var(--chart-left);
-        padding-right: 16px;
-        text-align: left;
-        font-size: 14px;
-        color: #333;
-      }
-    </style>
+        vAxis: {
+          textStyle: { fontName: 'Source Sans 3', fontSize: isNarrow ? 16 : 18 }
+        },
 
-    <script>
-      function computeLeftPadding(containerWidth) {
-        return Math.max(110, Math.min(160, Math.round(containerWidth * 0.22)));
-      }
-
-      function draw() {
-        const chartEl = document.getElementById('chart2');
-        const w = chartEl.parentElement.clientWidth || 800;
-        const left = computeLeftPadding(w);
-
-        document.documentElement.style.setProperty('--chart-left', left + 'px');
-
-        const data = google.visualization.arrayToDataTable([
-          [
-            'Group',
-            'Severe Symptoms',   { role: 'annotation' },
-            'Moderate Symptoms', { role: 'annotation' },
-            'Minimal Symptoms',  { role: 'annotation' },
-            'No Response',       { role: 'annotation' }
-          ],
-          ['Trans People', 42, '42%', 14, '14%', 3, '3%', 40, '40%'],
-          ['Other',       27, '27%', 39, '39%', 2, '2%', 32, '32%'],
-          ['Cis Women',   10, '10%', 24, '24%', 9, '9%', 57, '57%'],
-          ['Cis Men',      9, '9%',  20, '20%', 6, '6%', 66, '66%']
-        ]);
-
-        const options = {
-          title: 'Which genders are most likely to experience severe long COVID?',
-          titleTextStyle: { fontName: 'Source Sans 3', fontSize: 22, bold: true },
-
-          height: 500,
-          isStacked: true,
-
-          legend: { position: 'none' },
-
-          hAxis: {
-            minValue: 0,
-            maxValue: 100,
-            ticks: [0, 20, 40, 60, 80, 100],
-            textStyle: { fontName: 'Source Sans 3', fontSize: 14 }
-          },
-
-          vAxis: {
-            textStyle: { fontName: 'Source Sans 3', fontSize: 18 }
-          },
-
-          annotations: {
-            alwaysOutside: false,
-            textStyle: {
-              fontName: 'Source Sans 3',
-              fontSize: 16,
-              color: '#FFFFFF',
-              auraColor: 'transparent',
-              auraWidth: 0
-            }
-          },
-
-          bar: { groupWidth: '72%' },
-
-          colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
-
-          chartArea: {
-            left: left,
-            right: 24,
-            top: 78,
-            bottom: 48
-          },
-
-          backgroundColor: 'transparent'
-        };
-
-        new google.visualization.BarChart(chartEl).draw(data, options);
-      }
-
-      function init() {
-        google.charts.load('current', { packages: ['corechart'] });
-        google.charts.setOnLoadCallback(draw);
-
-        window.addEventListener('resize', function () {
-          if (window.google && google.visualization) {
-            draw();
+        annotations: {
+          // only used when annotation columns exist
+          alwaysOutside: false,
+          textStyle: {
+            fontName: 'Source Sans 3',
+            fontSize: isNarrow ? 12 : 16,
+            color: '#FFFFFF',
+            auraColor: 'transparent',
+            auraWidth: 0
           }
-        });
-      }
+        },
 
-      document.addEventListener('DOMContentLoaded', init);
-    </script>
-  </head>
+        bar: { groupWidth: isNarrow ? '62%' : '72%' },
 
-  <body>
-    <div class="wrap">
-      <div id="chart2"></div>
+        chartArea: {
+          left: left,
+          right: isNarrow ? 22 : 24,
+          top: 10,
+          bottom: 42
+        }
+      };
 
-      <div class="legend" aria-label="Legend">
-        <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
-        <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
-        <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
-        <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
-      </div>
+      new google.visualization.BarChart(el).draw(data, options);
+    }
 
-      <div class="caption">
-        Share of people who had COVID and developed Long COVID, by gender, December 2022
-      </div>
+    function init() {
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(drawChart2);
+
+      let t;
+      window.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          if (window.google && google.visualization) drawChart2();
+        }, 120);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <h2 class="chart-title">Which genders are most likely to experience severe long COVID?</h2>
+    <div id="chart2"></div>
+
+    <div class="legend" aria-label="Legend">
+      <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
     </div>
-  </body>
+
+    <div class="caption">
+      Share of people who had COVID and developed Long COVID, by gender, December 2022
+    </div>
+  </div>
+</body>
 </html>
