@@ -14,13 +14,21 @@
     <style>
       :root { --chart-left: 140px; }
 
-      html, body { margin: 0; padding: 0; }
-      body { font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+      html, body { margin: 0; padding: 0; background: #fff; }
+      body { font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; color: #111; }
 
       .wrap { width: 100%; }
+
+      /* This line should ALWAYS be visible. If it isn't, the HTML isn't being served. */
+      .proof {
+        padding: 10px 12px 0;
+        font-size: 13px;
+        color: #444;
+      }
+
       #chart2 { width: 100%; }
 
-      /* Custom legend aligned to chart area left edge, wraps to 2 lines if needed */
+      /* Custom legend aligned to chart area left edge */
       .legend {
         margin: 8px 0 0;
         padding-left: var(--chart-left);
@@ -43,21 +51,33 @@
         font-size: 14px;
         color: #333;
       }
+
+      /* If something goes wrong, we'll show it clearly */
+      .error {
+        margin: 10px 12px 0;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        background: #fafafa;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
     </style>
 
     <script>
-      google.charts.load('current', { packages: ['corechart'] });
-      google.charts.setOnLoadCallback(draw);
-
       function computeLeftPadding(containerWidth) {
         return Math.max(110, Math.min(160, Math.round(containerWidth * 0.22)));
       }
 
-      function draw() {
-        const el = document.getElementById('chart2');
-        const w = el.parentElement.clientWidth || 800;
-        const left = computeLeftPadding(w);
+      function showError(msg) {
+        const el = document.getElementById('err');
+        el.textContent = msg;
+        el.style.display = 'block';
+      }
 
+      function draw() {
+        const chartEl = document.getElementById('chart2');
+        const w = chartEl.parentElement.clientWidth || 800;
+        const left = computeLeftPadding(w);
         document.documentElement.style.setProperty('--chart-left', left + 'px');
 
         const data = google.visualization.arrayToDataTable([
@@ -78,10 +98,10 @@
           title: 'Which genders are most likely to experience severe long COVID?',
           titleTextStyle: { fontName: 'Source Sans 3', fontSize: 22, bold: true },
 
-          height: 500,          // tighter than before
+          height: 500,
           isStacked: true,
 
-          // Turn off Google legend (we use the HTML legend below)
+          // We use the custom HTML legend below instead.
           legend: { position: 'none' },
 
           hAxis: {
@@ -104,5 +124,72 @@
           },
 
           bar: { groupWidth: '72%' },
+          colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
-          colors:
+          chartArea: {
+            left: left,
+            right: 24,
+            top: 78,
+            bottom: 48
+          },
+
+          backgroundColor: 'transparent'
+        };
+
+        new google.visualization.BarChart(chartEl).draw(data, options);
+      }
+
+      function init() {
+        try {
+          if (!window.google || !google.charts) {
+            showError('Google Charts library did not load (google.charts is missing).');
+            return;
+          }
+
+          google.charts.load('current', { packages: ['corechart'] });
+          google.charts.setOnLoadCallback(() => {
+            try { draw(); }
+            catch (e) { showError('Error while drawing chart:\n' + (e && e.stack ? e.stack : e)); }
+          });
+
+          window.addEventListener('resize', () => {
+            try {
+              if (window.google && google.visualization) draw();
+            } catch (e) {
+              // Don’t spam; just show the first resize error.
+              showError('Error on resize:\n' + (e && e.stack ? e.stack : e));
+            }
+          });
+        } catch (e) {
+          showError('Fatal init error:\n' + (e && e.stack ? e.stack : e));
+        }
+      }
+
+      // Run after DOM is ready
+      document.addEventListener('DOMContentLoaded', init);
+    </script>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="proof">Graph 2 page loaded.</div>
+
+      <div id="chart2"></div>
+
+      <div class="legend" aria-label="Legend">
+        <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
+        <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
+        <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
+        <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
+      </div>
+
+      <div class="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
+
+      <div id="err" class="error" style="display:none;"></div>
+
+      <noscript>
+        <div class="error">JavaScript is disabled, so the interactive chart cannot display.</div>
+      </noscript>
+    </div>
+  </body>
+</html>
