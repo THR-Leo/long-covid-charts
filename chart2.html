@@ -16,7 +16,7 @@
     body {
       font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       color:#111;
-      overflow: hidden; /* helps prevent Wix iframe scrollbars */
+      overflow: hidden;
     }
 
     .wrap { padding: 14px 12px 18px; }
@@ -62,20 +62,17 @@
     function drawChart2() {
       const el = document.getElementById('chart2');
       const w = el.parentElement.clientWidth || 700;
-
       const isMobile = w < 520;
 
-      // IMPORTANT: data is preserved exactly as provided (even if rows sum to 99 or 101)
+      // Data preserved exactly (no changes)
       const data = google.visualization.arrayToDataTable([
         ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-        ['Trans People', 42, 14, 3, 40], // 99 total (kept as-is)
-        ['Other', 27, 39, 2, 32],        // 100 total
-        ['Cis Women', 10, 24, 9, 57],    // 100 total
-        ['Cis Men', 9, 20, 6, 66]        // 101 total (kept as-is)
+        ['Trans People', 42, 14, 3, 40],
+        ['Other', 27, 39, 2, 32],
+        ['Cis Women', 10, 24, 9, 57],
+        ['Cis Men', 9, 20, 6, 66]
       ]);
 
-      // Height tuned so the chart + legend + caption fit comfortably in typical Wix embed heights.
-      // The key fix for the “big gap under title on mobile” is vAxis.viewWindow forcing 0–100.
       const options = {
         height: isMobile ? 460 : 420,
         isStacked: true,
@@ -84,7 +81,6 @@
         colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
         vAxis: {
-          // This removes the big blank space above the columns when totals are 99/101:
           viewWindowMode: 'explicit',
           viewWindow: { min: 0, max: 100 },
           ticks: [0, 20, 40, 60, 80, 100],
@@ -97,11 +93,10 @@
 
         bar: { groupWidth: isMobile ? '62%' : '60%' },
 
-        // Keep plot area tight to reduce vertical dead space
         chartArea: {
           left: isMobile ? 18 : 26,
           right: isMobile ? 10 : 14,
-          top: 8,
+          top: 22,          // <-- increased from 8 to prevent the “100” label clipping
           bottom: 64
         }
       };
