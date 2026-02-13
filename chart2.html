@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Graph 2</title>
 
-    <!-- Source Sans 3 (loads for most visitors; falls back if blocked) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,21 +12,31 @@
     <script src="https://www.gstatic.com/charts/loader.js"></script>
 
     <style>
-      :root {
-        /* Keep this in sync with options.chartArea.left */
-        --chart-left: 180px;
+      :root { --chart-left: 140px; }
+
+      html, body { margin: 0; padding: 0; }
+      body { font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+
+      .wrap { width: 100%; }
+      #chart2 { width: 100%; }
+
+      /* Custom legend aligned to chart area left edge, wraps to 2 lines if needed */
+      .legend {
+        margin: 8px 0 0;
+        padding-left: var(--chart-left);
+        padding-right: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 22px;
+        align-items: center;
+        font-size: 14px;
+        color: #111;
       }
+      .legend-item { display: inline-flex; align-items: center; gap: 8px; }
+      .swatch { width: 18px; height: 12px; border-radius: 2px; display: inline-block; }
 
-      body {
-        margin: 0;
-        font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-      }
-
-      .wrap { padding: 0; }
-
-      /* Caption aligned to the same left edge as the bars (chartArea.left) */
       .caption {
-        margin: 12px 0 0;
+        margin: 10px 0 0;
         padding-left: var(--chart-left);
         padding-right: 16px;
         text-align: left;
@@ -40,7 +49,17 @@
       google.charts.load('current', { packages: ['corechart'] });
       google.charts.setOnLoadCallback(draw);
 
+      function computeLeftPadding(containerWidth) {
+        return Math.max(110, Math.min(160, Math.round(containerWidth * 0.22)));
+      }
+
       function draw() {
+        const el = document.getElementById('chart2');
+        const w = el.parentElement.clientWidth || 800;
+        const left = computeLeftPadding(w);
+
+        document.documentElement.style.setProperty('--chart-left', left + 'px');
+
         const data = google.visualization.arrayToDataTable([
           [
             'Group',
@@ -59,15 +78,11 @@
           title: 'Which genders are most likely to experience severe long COVID?',
           titleTextStyle: { fontName: 'Source Sans 3', fontSize: 22, bold: true },
 
-          height: 560,
+          height: 500,          // tighter than before
           isStacked: true,
 
-          /* Legend left-aligned to the chart area */
-          legend: {
-            position: 'bottom',
-            alignment: 'start',
-            textStyle: { fontName: 'Source Sans 3', fontSize: 16 }
-          },
+          // Turn off Google legend (we use the HTML legend below)
+          legend: { position: 'none' },
 
           hAxis: {
             minValue: 0,
@@ -77,7 +92,6 @@
           },
           vAxis: { textStyle: { fontName: 'Source Sans 3', fontSize: 18 } },
 
-          /* White annotation labels, no outline/halo */
           annotations: {
             alwaysOutside: false,
             textStyle: {
@@ -89,32 +103,6 @@
             }
           },
 
-          bar: { groupWidth: '70%' },
+          bar: { groupWidth: '72%' },
 
-          /* Colours in series order: Severe, Moderate, Minimal, No Response */
-          colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
-
-          /* Keep this left value in sync with --chart-left above */
-          chartArea: { left: 180, right: 40, top: 80, bottom: 90 },
-
-          backgroundColor: 'transparent'
-        };
-
-        const chart = new google.visualization.BarChart(document.getElementById('chart2'));
-        chart.draw(data, options);
-      }
-
-      // Redraw on resize so it stays responsive in iframes
-      window.addEventListener('resize', () => {
-        if (window.google && google.visualization) draw();
-      });
-    </script>
-  </head>
-
-  <body>
-    <div class="wrap">
-      <div id="chart2"></div>
-      <div class="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
-    </div>
-  </body>
-</html>
+          colors:
