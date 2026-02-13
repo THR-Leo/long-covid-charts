@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Graph 1</title>
 
-    <!-- Source Sans 3 (loads for most visitors; falls back if blocked) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,21 +12,18 @@
     <script src="https://www.gstatic.com/charts/loader.js"></script>
 
     <style>
-      :root {
-        /* Keep this in sync with options.chartArea.left */
-        --chart-left: 180px;
-      }
+      :root { --chart-left: 140px; }
 
-      body {
-        margin: 0;
-        font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-      }
+      html, body { margin: 0; padding: 0; }
+      body { font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
 
-      .wrap { padding: 0; }
+      .wrap { width: 100%; }
 
-      /* Caption aligned to the same left edge as the bars (chartArea.left) */
+      /* Let the chart fill the iframe width */
+      #chart1 { width: 100%; }
+
       .caption {
-        margin: 12px 0 0;
+        margin: 10px 0 0;
         padding-left: var(--chart-left);
         padding-right: 16px;
         text-align: left;
@@ -40,7 +36,19 @@
       google.charts.load('current', { packages: ['corechart'] });
       google.charts.setOnLoadCallback(draw);
 
+      function computeLeftPadding(containerWidth) {
+        // Responsive left padding: enough for labels, but not wasteful on narrow columns.
+        return Math.max(110, Math.min(160, Math.round(containerWidth * 0.22)));
+      }
+
       function draw() {
+        const el = document.getElementById('chart1');
+        const w = el.parentElement.clientWidth || 800;
+        const left = computeLeftPadding(w);
+
+        // Keep caption aligned with the chart area automatically
+        document.documentElement.style.setProperty('--chart-left', left + 'px');
+
         const data = google.visualization.arrayToDataTable([
           ['Group', 'Percent', { role: 'annotation' }],
           ['Trans People', 46, '46%'],
@@ -53,7 +61,7 @@
           title: 'Which genders are most likely to develop long COVID?',
           titleTextStyle: { fontName: 'Source Sans 3', fontSize: 22, bold: true },
 
-          height: 520,
+          height: 460,                 // tighter than before
           legend: { position: 'none' },
 
           hAxis: {
@@ -69,20 +77,23 @@
             textStyle: { fontName: 'Source Sans 3', fontSize: 16, color: '#000' }
           },
 
-          bar: { groupWidth: '70%' },
+          bar: { groupWidth: '72%' },
           colors: ['#000F46'],
 
-          /* Keep this left value in sync with --chart-left above */
-          chartArea: { left: 180, right: 90, top: 80, bottom: 60 },
+          chartArea: {
+            left: left,
+            right: 24,
+            top: 78,
+            bottom: 48
+          },
 
           backgroundColor: 'transparent'
         };
 
-        const chart = new google.visualization.BarChart(document.getElementById('chart1'));
-        chart.draw(data, options);
+        new google.visualization.BarChart(el).draw(data, options);
       }
 
-      // Redraw on resize so it stays responsive in iframes
+      // Redraw on resize (important inside iframes)
       window.addEventListener('resize', () => {
         if (window.google && google.visualization) draw();
       });
