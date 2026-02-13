@@ -74,7 +74,9 @@
       ]);
 
       const options = {
-        height: isMobile ? 460 : 420,
+        // Give iOS Safari more vertical room so the top tick label (100) isn’t clipped
+        height: isMobile ? 540 : 420,
+
         isStacked: true,
         legend: { position: 'none' },
         backgroundColor: 'transparent',
@@ -96,7 +98,7 @@
         chartArea: {
           left: isMobile ? 18 : 26,
           right: isMobile ? 10 : 14,
-          top: 22,          // <-- increased from 8 to prevent the “100” label clipping
+          top: 48,          // key change: push plot down further so "100" is fully visible
           bottom: 64
         }
       };
