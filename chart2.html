@@ -14,17 +14,18 @@
     <style>
       :root { --chart-left: 140px; }
 
-      html, body { margin: 0; padding: 0; background: #fff; }
-      body { font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; color: #111; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+      }
+
+      body {
+        font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+        color: #111;
+      }
 
       .wrap { width: 100%; }
-
-      /* This line should ALWAYS be visible. If it isn't, the HTML isn't being served. */
-      .proof {
-        padding: 10px 12px 0;
-        font-size: 13px;
-        color: #444;
-      }
 
       #chart2 { width: 100%; }
 
@@ -40,8 +41,19 @@
         font-size: 14px;
         color: #111;
       }
-      .legend-item { display: inline-flex; align-items: center; gap: 8px; }
-      .swatch { width: 18px; height: 12px; border-radius: 2px; display: inline-block; }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .swatch {
+        width: 18px;
+        height: 12px;
+        border-radius: 2px;
+        display: inline-block;
+      }
 
       .caption {
         margin: 10px 0 0;
@@ -51,16 +63,6 @@
         font-size: 14px;
         color: #333;
       }
-
-      /* If something goes wrong, we'll show it clearly */
-      .error {
-        margin: 10px 12px 0;
-        padding: 10px 12px;
-        border: 1px solid #ddd;
-        background: #fafafa;
-        font-size: 13px;
-        white-space: pre-wrap;
-      }
     </style>
 
     <script>
@@ -68,16 +70,11 @@
         return Math.max(110, Math.min(160, Math.round(containerWidth * 0.22)));
       }
 
-      function showError(msg) {
-        const el = document.getElementById('err');
-        el.textContent = msg;
-        el.style.display = 'block';
-      }
-
       function draw() {
         const chartEl = document.getElementById('chart2');
         const w = chartEl.parentElement.clientWidth || 800;
         const left = computeLeftPadding(w);
+
         document.documentElement.style.setProperty('--chart-left', left + 'px');
 
         const data = google.visualization.arrayToDataTable([
@@ -101,7 +98,6 @@
           height: 500,
           isStacked: true,
 
-          // We use the custom HTML legend below instead.
           legend: { position: 'none' },
 
           hAxis: {
@@ -110,7 +106,10 @@
             ticks: [0, 20, 40, 60, 80, 100],
             textStyle: { fontName: 'Source Sans 3', fontSize: 14 }
           },
-          vAxis: { textStyle: { fontName: 'Source Sans 3', fontSize: 18 } },
+
+          vAxis: {
+            textStyle: { fontName: 'Source Sans 3', fontSize: 18 }
+          },
 
           annotations: {
             alwaysOutside: false,
@@ -124,6 +123,7 @@
           },
 
           bar: { groupWidth: '72%' },
+
           colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
 
           chartArea: {
@@ -140,40 +140,22 @@
       }
 
       function init() {
-        try {
-          if (!window.google || !google.charts) {
-            showError('Google Charts library did not load (google.charts is missing).');
-            return;
+        google.charts.load('current', { packages: ['corechart'] });
+        google.charts.setOnLoadCallback(draw);
+
+        window.addEventListener('resize', function () {
+          if (window.google && google.visualization) {
+            draw();
           }
-
-          google.charts.load('current', { packages: ['corechart'] });
-          google.charts.setOnLoadCallback(() => {
-            try { draw(); }
-            catch (e) { showError('Error while drawing chart:\n' + (e && e.stack ? e.stack : e)); }
-          });
-
-          window.addEventListener('resize', () => {
-            try {
-              if (window.google && google.visualization) draw();
-            } catch (e) {
-              // Don’t spam; just show the first resize error.
-              showError('Error on resize:\n' + (e && e.stack ? e.stack : e));
-            }
-          });
-        } catch (e) {
-          showError('Fatal init error:\n' + (e && e.stack ? e.stack : e));
-        }
+        });
       }
 
-      // Run after DOM is ready
       document.addEventListener('DOMContentLoaded', init);
     </script>
   </head>
 
   <body>
     <div class="wrap">
-      <div class="proof">Graph 2 page loaded.</div>
-
       <div id="chart2"></div>
 
       <div class="legend" aria-label="Legend">
@@ -183,13 +165,9 @@
         <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
       </div>
 
-      <div class="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
-
-      <div id="err" class="error" style="display:none;"></div>
-
-      <noscript>
-        <div class="error">JavaScript is disabled, so the interactive chart cannot display.</div>
-      </noscript>
+      <div class="caption">
+        Share of people who had COVID and developed Long COVID, by gender, December 2022
+      </div>
     </div>
   </body>
 </html>
