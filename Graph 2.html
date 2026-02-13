@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Graph 2</title>
+
+    <!-- Source Sans 3 (loads on most devices; falls back if blocked) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <style>
+      body { margin: 0; font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+      .wrap { padding: 0; }
+      .caption { margin: 12px 0 0; text-align: center; font-size: 14px; color: #333; }
+    </style>
+
+    <script>
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(draw);
+
+      function draw() {
+        const data = google.visualization.arrayToDataTable([
+          [
+            'Group',
+            'Severe Symptoms',   { role: 'annotation' },
+            'Moderate Symptoms', { role: 'annotation' },
+            'Minimal Symptoms',  { role: 'annotation' },
+            'No Response',       { role: 'annotation' }
+          ],
+          ['Trans People', 42, '42%', 14, '14%', 3, '3%', 40, '40%'],
+          ['Other',       27, '27%', 39, '39%', 2, '2%', 32, '32%'],
+          ['Cis Women',   10, '10%', 24, '24%', 9, '9%', 57, '57%'],
+          ['Cis Men',      9, '9%',  20, '20%', 6, '6%', 66, '66%']
+        ]);
+
+        const options = {
+          title: 'Which genders are most likely to experience severe long COVID?',
+          titleTextStyle: { fontName: 'Source Sans 3', fontSize: 22, bold: true },
+
+          height: 560,
+          isStacked: true,
+
+          legend: {
+            position: 'bottom',
+            textStyle: { fontName: 'Source Sans 3', fontSize: 16 }
+          },
+
+          hAxis: {
+            minValue: 0,
+            maxValue: 100,
+            ticks: [0, 20, 40, 60, 80, 100],
+            textStyle: { fontName: 'Source Sans 3', fontSize: 14 }
+          },
+
+          vAxis: {
+            textStyle: { fontName: 'Source Sans 3', fontSize: 18 }
+          },
+
+          // Force annotations to be consistent: white text, no “halo/outline”
+          annotations: {
+            alwaysOutside: false,
+            textStyle: {
+              fontName: 'Source Sans 3',
+              fontSize: 16,
+              color: '#FFFFFF',
+              auraColor: 'transparent',
+              auraWidth: 0
+            }
+          },
+
+          bar: { groupWidth: '70%' },
+
+          // Colours in the same order as the series:
+          // Severe, Moderate, Minimal, No Response
+          colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
+
+          chartArea: { left: 180, right: 40, top: 80, bottom: 90 },
+          backgroundColor: 'transparent'
+        };
+
+        const chart = new google.visualization.BarChart(document.getElementById('chart2'));
+        chart.draw(data, options);
+      }
+
+      // Redraw on resize so it stays responsive in iframes
+      window.addEventListener('resize', () => {
+        if (google && google.visualization) draw();
+      });
+    </script>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div id="chart2"></div>
+      <div class="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
+    </div>
+  </body>
+</html>
