@@ -18,14 +18,13 @@
     body {
       font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
       color:#111;
-      overflow: hidden; /* helps avoid any stray scrollbars inside iframes */
+      overflow: hidden; /* prevents internal scrollbars */
     }
 
-    /* Tighter vertical padding to reduce whitespace on mobile */
-    .wrap { padding: 12px 12px 12px; }
+    .wrap { padding: 12px 12px 10px; }
 
     .chart-title {
-      margin: 0 0 8px;  /* was 10px */
+      margin: 0 0 8px;
       font-size: 22px;
       line-height: 1.15;
       font-weight: 700;
@@ -35,7 +34,7 @@
     #chart1 { width: 100%; }
 
     .caption {
-      margin: 6px 0 0; /* was 10px */
+      margin: 8px 0 0;
       padding-left: var(--chart-left);
       padding-right: 8px;
       text-align: left;
@@ -44,7 +43,7 @@
     }
 
     @media (max-width: 420px) {
-      .wrap { padding: 10px 12px 10px; }
+      .wrap { padding: 10px 12px 8px; }
       .chart-title { font-size: 18px; margin-bottom: 6px; }
       .caption { font-size: 13px; margin-top: 6px; }
     }
@@ -58,21 +57,37 @@
       return 140;
     }
 
-    function computeChartHeight(w) {
-      // Key change: reduce mobile height so Wix doesn’t leave large gaps
-      if (w < 360) return 360;
-      if (w < 420) return 380;
-      if (w < 520) return 410;
-      return 440;
-    }
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
     function drawChart1() {
+      const wrap = document.querySelector('.wrap');
       const el = document.getElementById('chart1');
-      const w = el.parentElement.clientWidth || 700;
+      const titleEl = document.querySelector('.chart-title');
+      const capEl = document.querySelector('.caption');
+
+      const w = wrap.clientWidth || 700;
       const left = computeLeftPadding(w);
       document.documentElement.style.setProperty('--chart-left', left + 'px');
 
       const isMobile = w < 520;
+
+      // Fill available iframe height to avoid blank space inside the Wix HTML component.
+      // (window.innerHeight in this iframe == Wix element height on that breakpoint)
+      const wrapStyles = getComputedStyle(wrap);
+      const padTop = parseFloat(wrapStyles.paddingTop) || 0;
+      const padBottom = parseFloat(wrapStyles.paddingBottom) || 0;
+
+      const titleH = titleEl ? titleEl.getBoundingClientRect().height : 0;
+      const capH = capEl ? capEl.getBoundingClientRect().height : 0;
+
+      // extra spacing between blocks (title->chart, chart->caption)
+      const chromeH = padTop + padBottom + titleH + capH + (isMobile ? 12 : 16);
+
+      // Choose sensible bounds so charts never become absurdly tall/short
+      const minH = isMobile ? 330 : 360;
+      const maxH = isMobile ? 520 : 560;
+
+      const targetChartH = clamp((window.innerHeight || 600) - chromeH, minH, maxH);
 
       const data = google.visualization.arrayToDataTable([
         ['Group', 'Percent', { role: 'annotation' }],
@@ -83,7 +98,7 @@
       ]);
 
       const options = {
-        height: computeChartHeight(w),
+        height: Math.round(targetChartH),
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         colors: ['#000F46'],
@@ -110,14 +125,13 @@
           }
         },
 
-        // Slightly slimmer bars on mobile reduces vertical space
-        bar: { groupWidth: isMobile ? '56%' : '72%' },
+        bar: { groupWidth: isMobile ? '62%' : '70%' },
 
         chartArea: {
           left: left,
-          right: isMobile ? 28 : 36,
-          top: 2,              // tighter to reduce gap under title
-          bottom: isMobile ? 30 : 36
+          right: isMobile ? 26 : 34,
+          top: 6,
+          bottom: 34
         }
       };
 
