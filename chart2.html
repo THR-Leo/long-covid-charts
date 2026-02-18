@@ -1,154 +1,182 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Chart 2</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chart 2</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
-<script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
 
-<style>
-html, body { margin:0; padding:0; background:#fff; }
+  <style>
+    :root { --chart-left: 56px; }
 
-body {
-  font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-  color:#111;
-}
-
-.wrap { padding: 12px 12px 10px; }
-
-.chart-title {
-  margin: 0 0 8px;
-  font-size: 22px;
-  font-weight: 700;
-  text-align: left;
-}
-
-#chart2 { width: 100%; }
-
-.legend {
-  margin: 8px 0 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  font-size: 14px;
-}
-
-.legend-item {
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
-
-.swatch {
-  width:16px;
-  height:10px;
-  border-radius:2px;
-  display:inline-block;
-}
-
-.caption {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color:#333;
-  text-align:left;
-}
-
-@media (max-width: 520px) {
-  .chart-title { font-size: 18px; }
-  .legend { font-size: 13px; }
-  .caption { font-size: 13px; }
-}
-</style>
-
-<script>
-google.charts.load('current', { packages: ['corechart'] });
-google.charts.setOnLoadCallback(drawChart);
-
-function drawChart() {
-
-  const container = document.getElementById('chart2');
-  const width = container.parentElement.clientWidth || 700;
-  const isMobile = width < 520;
-
-  const data = google.visualization.arrayToDataTable([
-    ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-    ['Trans People', 42, 14, 3, 40],
-    ['Other', 27, 39, 2, 32],
-    ['Cis Women', 10, 24, 9, 57],
-    ['Cis Men', 9, 20, 6, 66]
-  ]);
-
-  const options = {
-
-    height: isMobile ? 440 : 420,
-    isStacked: true,
-    legend: { position: 'none' },
-    backgroundColor: 'transparent',
-
-    colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
-
-    hAxis: {
-      minValue: 0,
-      maxValue: 100,
-      ticks: [0,20,40,60,80,100],
-      textStyle: {
-        fontName: 'Source Sans 3',
-        fontSize: 12   // ← reduced
-      }
-    },
-
-    vAxis: {
-      textStyle: {
-        fontName: 'Source Sans 3',
-        fontSize: isMobile ? 12 : 13
-      }
-    },
-
-    bar: { groupWidth: isMobile ? '70%' : '60%' },
-
-    chartArea: {
-      left: 55,
-      right: 16,
-      top: 10,
-      bottom: 45
+    html, body { margin:0; padding:0; background:#fff; }
+    body {
+      font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:#111;
     }
 
-  };
+    /* Tighten overall spacing so mobile doesn’t “feel” gappy */
+    .wrap { padding: 12px 12px 14px; }
 
-  new google.visualization.ColumnChart(container).draw(data, options);
-}
+    .chart-title {
+      margin: 0 0 8px;            /* keep tight */
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 700;
+      text-align: left;
+    }
 
-window.addEventListener('resize', function() {
-  drawChart();
-});
-</script>
+    #chart2 { width: 100%; }
+
+    .legend {
+      margin: 10px 0 0;           /* tight */
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 16px;
+      align-items: start;
+      font-size: 14px;
+      color: #111;
+    }
+
+    .legend-item { display:flex; align-items:center; gap:8px; }
+    .swatch { width:18px; height:12px; border-radius:2px; flex:0 0 auto; }
+
+    .caption {
+      margin: 10px 0 0;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+    }
+
+    @media (max-width: 420px) {
+      .chart-title { font-size: 18px; margin-bottom: 6px; }
+      .legend { font-size: 13px; }
+      .caption { font-size: 13px; }
+    }
+  </style>
+
+  <script>
+    // IMPORTANT: values preserved exactly as provided
+    function getDataTable() {
+      return google.visualization.arrayToDataTable([
+        ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+        ['Trans People', 42, 14, 3, 40],
+        ['Other',       27, 39, 2, 32],
+        ['Cis Women',   10, 24, 9, 57],
+        ['Cis Men',      9, 20, 6, 66]
+      ]);
+    }
+
+    function computeLeftPadding(w) {
+      // y-axis labels for a vertical chart are numbers, so we can keep this modest
+      if (w < 360) return 44;
+      if (w < 420) return 50;
+      return 56;
+    }
+
+    function computeChartHeight(w) {
+      // Goal: avoid internal scrolling while keeping legend visible.
+      // This is the CHART area only; legend/caption live outside the chart.
+      if (w < 360) return 420;
+      if (w < 420) return 440;
+      if (w < 520) return 460;
+      return 520;
+    }
+
+    function drawChart2() {
+      const el = document.getElementById('chart2');
+      const w = el.parentElement.clientWidth || 700;
+
+      const left = computeLeftPadding(w);
+      document.documentElement.style.setProperty('--chart-left', left + 'px');
+
+      const isMobile = w < 520;
+      const height = computeChartHeight(w);
+
+      const data = getDataTable();
+
+      const options = {
+        height,
+        isStacked: true,
+        legend: { position: 'none' },       // legend is custom HTML below
+        backgroundColor: 'transparent',
+        colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
+
+        // Force the scale and ticks so 100 exists and is not “auto-trimmed”.
+        vAxis: {
+          viewWindow: { min: 0, max: 100 },
+          ticks: [0, 20, 40, 60, 80, 100],
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 12 : 14 }
+        },
+
+        hAxis: {
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 14 : 16 }
+        },
+
+        // The critical fix for “100” being clipped:
+        // increase chartArea.top so the top tick label has room.
+        chartArea: {
+          left,
+          right: 18,
+          top: isMobile ? 34 : 22,          // more headroom on mobile
+          bottom: isMobile ? 62 : 62        // room for category labels
+        },
+
+        bar: { groupWidth: isMobile ? '62%' : '66%' },
+
+        // Keep the plot clean and predictable
+        tooltip: { trigger: 'focus' }
+      };
+
+      new google.visualization.ColumnChart(el).draw(data, options);
+    }
+
+    function init() {
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(drawChart2);
+
+      // Redraw reliably when Wix resizes the iframe/container
+      let t;
+      const redraw = () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          if (window.google && google.visualization) drawChart2();
+        }, 120);
+      };
+
+      window.addEventListener('resize', redraw);
+
+      if ('ResizeObserver' in window) {
+        const ro = new ResizeObserver(redraw);
+        ro.observe(document.body);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </head>
 
 <body>
-<div class="wrap">
+  <div class="wrap">
+    <h2 class="chart-title">Which genders are most likely to experience severe long COVID?</h2>
 
-  <h2 class="chart-title">
-    Which genders are most likely to experience severe long COVID?
-  </h2>
+    <div id="chart2"></div>
 
-  <div id="chart2"></div>
+    <div class="legend" aria-label="Legend">
+      <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
+    </div>
 
-  <div class="legend">
-    <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
-    <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
-    <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
-    <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
+    <div class="caption">
+      Share of people who had COVID and developed Long COVID, by gender, December 2022
+    </div>
   </div>
-
-  <div class="caption">
-    Share of people who had COVID and developed Long COVID, by gender, December 2022
-  </div>
-
-</div>
 </body>
 </html>
