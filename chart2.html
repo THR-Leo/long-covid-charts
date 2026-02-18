@@ -1,227 +1,159 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Chart 2</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-
-<script src="https://www.gstatic.com/charts/loader.js"></script>
+<!-- Chart 2 (stacked vertical column chart) -->
+<div id="chart2-wrap" style="width:100%; max-width:740px; margin:0 auto;">
+  <div id="chart2" style="width:100%;"></div>
+</div>
 
 <style>
-  html, body { margin:0; padding:0; background:#fff; }
-  body {
-    font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-    color:#111;
-  }
-
-  /* Keep the overall embed compact */
-  .wrap { padding: 10px 12px 10px; }
-
-  .chart-title {
-    margin: 0 0 8px;
-    font-size: 22px;
-    line-height: 1.15;
-    font-weight: 700;
-    text-align: left;
-  }
-
-  #chart2 { width: 100%; }
-
-  .legend {
-    margin: 8px 0 6px;
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* 2-column legend by default */
-    gap: 8px 14px;
-    align-items: center;
-    font-size: 14px;
-    color: #111;
-  }
-
-  .legend-item { display:inline-flex; align-items:center; gap:6px; min-width: 0; }
-  .swatch { width:16px; height:10px; border-radius:2px; display:inline-block; flex: 0 0 auto; }
-
-  .caption {
-    margin: 6px 0 0;
-    font-size: 14px;
-    color: #333;
-    text-align: left;
-  }
-
-  @media (max-width: 520px) {
-    .wrap { padding: 8px 12px 8px; }
-    .chart-title { font-size: 18px; margin-bottom: 6px; }
-    .legend { font-size: 12px; gap: 6px 12px; margin: 6px 0 6px; }
-    .swatch { width:14px; height:9px; }
-    .caption { font-size: 12px; margin-top: 6px; }
+  /* Prevent tooltip from capturing the mouse (common cause of flicker) */
+  .google-visualization-tooltip{
+    pointer-events: none !important;
   }
 </style>
 
-<script>
-  google.charts.load('current', { packages: ['corechart'] });
-  google.charts.setOnLoadCallback(init);
-
-  function dataTable() {
-    // DATA UNCHANGED
-    return google.visualization.arrayToDataTable([
-      ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-      ['Trans People', 42, 14, 3, 40],
-      ['Other', 27, 39, 2, 32],
-      ['Cis Women', 10, 24, 9, 57],
-      ['Cis Men', 9, 20, 6, 66]
-    ]);
-  }
-
-  function measureOuterHeights() {
-    const wrap = document.querySelector('.wrap');
-    const title = document.getElementById('title');
-    const legend = document.getElementById('legend');
-    const caption = document.getElementById('caption');
-
-    // Force layout to be up to date
-    const wrapStyles = window.getComputedStyle(wrap);
-    const padTop = parseFloat(wrapStyles.paddingTop) || 0;
-    const padBottom = parseFloat(wrapStyles.paddingBottom) || 0;
-
-    const titleH = title.getBoundingClientRect().height;
-    const legendH = legend.getBoundingClientRect().height;
-    const captionH = caption.getBoundingClientRect().height;
-
-    // Include margins that affect flow (we use margin on elements, so count them too)
-    const titleMarginBottom = parseFloat(window.getComputedStyle(title).marginBottom) || 0;
-    const legendMarginTop = parseFloat(window.getComputedStyle(legend).marginTop) || 0;
-    const legendMarginBottom = parseFloat(window.getComputedStyle(legend).marginBottom) || 0;
-    const captionMarginTop = parseFloat(window.getComputedStyle(caption).marginTop) || 0;
-
-    return {
-      padTop, padBottom,
-      titleH, titleMarginBottom,
-      legendH, legendMarginTop, legendMarginBottom,
-      captionH, captionMarginTop
-    };
-  }
-
-  function computeChartHeight() {
-    const container = document.getElementById('chart2');
-    const w = container.parentElement.clientWidth || 700;
-    const isMobile = w < 520;
-
-    // In Wix embeds, this is effectively the iframe height on mobile/desktop
-    const viewportH = (window.visualViewport && window.visualViewport.height)
-      ? window.visualViewport.height
-      : window.innerHeight;
-
-    const m = measureOuterHeights();
-
-    // Total non-chart vertical space
-    const nonChart =
-      m.padTop + m.padBottom +
-      m.titleH + m.titleMarginBottom +
-      m.legendMarginTop + m.legendH + m.legendMarginBottom +
-      m.captionMarginTop + m.captionH;
-
-    // Small safety buffer to avoid 1–2px rounding causing scroll
-    const safety = isMobile ? 8 : 10;
-
-    // Chart height is whatever is left
-    let h = Math.floor(viewportH - nonChart - safety);
-
-    // Reasonable lower bound so chart remains readable
-    const minH = isMobile ? 260 : 280;
-    if (h < minH) h = minH;
-
-    return { height: h, isMobile };
-  }
-
-  function drawChart() {
-    const el = document.getElementById('chart2');
-    const { height, isMobile } = computeChartHeight();
-
-    const options = {
-      height: height,
-      isStacked: true,
-      legend: { position: 'none' },
-      backgroundColor: 'transparent',
-      colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
-
-      // Values axis (vertical) — ensure 100 is inside the view window
-      vAxis: {
-        viewWindow: { min: 0, max: 100 },
-        ticks: [0, 20, 40, 60, 80, 100],
-        textStyle: {
-          fontName: 'Source Sans 3',
-          fontSize: isMobile ? 12 : 13
-        }
-      },
-
-      // Category labels (horizontal)
-      hAxis: {
-        textStyle: {
-          fontName: 'Source Sans 3',
-          fontSize: isMobile ? 12 : 12
-        }
-      },
-
-      bar: { groupWidth: isMobile ? '66%' : '60%' },
-
-      // Key part: give the chart a little top room so “100” is not clipped,
-      // but without increasing total embed height (we compute height from viewport).
-      chartArea: {
-        left: 44,
-        right: 12,
-        top: 18,              // prevents clipping of the top tick label
-        bottom: isMobile ? 40 : 44
-      }
-    };
-
-    new google.visualization.ColumnChart(el).draw(dataTable(), options);
-  }
-
-  function init() {
-    // Draw once fonts/layout settle, then redraw on resize
-    const redraw = () => {
-      // Two-pass draw helps when legend/caption wrapping changes after first paint
-      drawChart();
-      setTimeout(drawChart, 60);
-    };
-
-    redraw();
-
-    let t;
-    window.addEventListener('resize', () => {
-      clearTimeout(t);
-      t = setTimeout(redraw, 120);
-    });
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => {
-        clearTimeout(t);
-        t = setTimeout(redraw, 120);
-      });
+<script type="text/javascript">
+  (function () {
+    // Load Google Charts (only once per page)
+    if (!window.__googleChartsLoaderAdded) {
+      window.__googleChartsLoaderAdded = true;
+      var s = document.createElement('script');
+      s.src = 'https://www.gstatic.com/charts/loader.js';
+      s.onload = initChart2;
+      document.head.appendChild(s);
+    } else {
+      initChart2();
     }
-  }
+
+    function initChart2() {
+      if (!window.google || !google.charts) {
+        // If loader hasn't finished yet, retry shortly.
+        setTimeout(initChart2, 50);
+        return;
+      }
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(setupChart2);
+    }
+
+    function setupChart2() {
+      var wrap = document.getElementById('chart2-wrap');
+      var el = document.getElementById('chart2');
+      if (!wrap || !el) return;
+
+      var data = google.visualization.arrayToDataTable([
+        ['Gender', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+        ['Trans People', 42, 14,  3, 40],
+        ['Other',       27, 39,  2, 32],
+        ['Cis Women',   10, 24,  9, 57],
+        ['Cis Men',      9, 20,  6, 66]
+      ]);
+
+      var chart = new google.visualization.ColumnChart(el);
+
+      function computeHeight(w) {
+        // Responsive height tuned so: title + plot + legend + subtitle are all visible without scrolling.
+        // Clamp keeps it from getting absurdly tall on mobile or too short on desktop.
+        var h = Math.round(w * 0.95);
+        return Math.max(420, Math.min(620, h));
+      }
+
+      function draw() {
+        var w = wrap.clientWidth || 740;
+        var h = computeHeight(w);
+        el.style.height = h + 'px';
+
+        var isNarrow = w < 480;
+
+        var options = {
+          width: w,
+          height: h,
+
+          title: 'Which genders are most likely to experience severe long COVID?',
+          titleTextStyle: { fontSize: 22, bold: true },
+
+          isStacked: true,
+
+          // These two together make the hover target the whole column (category),
+          // which stops the rapid hover switching between stacked segments.
+          focusTarget: 'category',
+          aggregationTarget: 'category',
+
+          legend: {
+            position: 'bottom',
+            alignment: 'center',
+            textStyle: { fontSize: 16 }
+          },
+
+          chartArea: {
+            left: isNarrow ? 46 : 60,
+            right: 18,
+            top: 60,
+            bottom: 110,
+            width: '100%',
+            height: '100%'
+          },
+
+          vAxis: {
+            viewWindow: { min: 0, max: 100 },  // ensures 100 is not clipped away
+            ticks: [0, 20, 40, 60, 80, 100],
+            textStyle: { fontSize: 16 }
+          },
+
+          hAxis: {
+            textStyle: { fontSize: 16 } // keeps category labels consistent with your body text scale
+          },
+
+          tooltip: {
+            isHtml: true,
+            textStyle: { fontSize: 14 }
+          },
+
+          // Colours: keep whatever you already settled on; adjust only if needed.
+          colors: ['#041144', '#0B4B63', '#2E4A1F', '#2F2F2F']
+        };
+
+        chart.draw(data, options);
+
+        // Add the subtitle line beneath the legend (inside the same embed, so no scrolling needed)
+        injectSubtitle();
+      }
+
+      function injectSubtitle() {
+        var existing = document.getElementById('chart2-subtitle');
+        if (!existing) {
+          existing = document.createElement('div');
+          existing.id = 'chart2-subtitle';
+          existing.style.fontSize = '16px';
+          existing.style.lineHeight = '1.35';
+          existing.style.marginTop = '10px';
+          existing.style.textAlign = 'center';
+          existing.textContent = 'Share of people who had COVID and developed Long COVID, by gender, December 2022';
+          wrap.appendChild(existing);
+        }
+      }
+
+      // Redraw on resize — debounced, and only when width actually changes (avoids redraw loops).
+      var lastW = 0;
+      var t = null;
+      function onResize() {
+        clearTimeout(t);
+        t = setTimeout(function () {
+          var nowW = wrap.clientWidth || 0;
+          if (Math.abs(nowW - lastW) < 2) return;
+          lastW = nowW;
+          draw();
+        }, 120);
+      }
+
+      window.addEventListener('resize', onResize, { passive: true });
+
+      // If available, observe the container itself (more reliable inside Wix layouts)
+      if (window.ResizeObserver) {
+        var ro = new ResizeObserver(onResize);
+        ro.observe(wrap);
+      }
+
+      // First draw
+      lastW = wrap.clientWidth || 0;
+      draw();
+    }
+  })();
 </script>
-</head>
-
-<body>
-  <div class="wrap">
-    <h2 class="chart-title" id="title">Which genders are most likely to experience severe long COVID?</h2>
-
-    <div id="chart2"></div>
-
-    <div class="legend" id="legend" aria-label="Legend">
-      <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
-      <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
-      <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
-      <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
-    </div>
-
-    <div class="caption" id="caption">
-      Share of people who had COVID and developed Long COVID, by gender, December 2022
-    </div>
-  </div>
-</body>
-</html>
