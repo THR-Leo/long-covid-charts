@@ -1,56 +1,62 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chart 2 – Long COVID symptom severity</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chart 2</title>
+
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    /* Prevent internal (iframe) scrollbars */
+    /* Prevent internal scrollbars inside the embed */
     html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: transparent;
       height: 100%;
-      width: 100%;
-    }
-
-    /* Use a neutral “site-like” system font stack (no Helvetica hard-coding) */
-    :root {
-      --site-font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      overflow: hidden;
+      background: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
     }
 
     #wrap {
-      box-sizing: border-box;
+      position: relative;
       width: 100%;
-      overflow: hidden;
-      font-family: var(--site-font);
+      height: 100%;
     }
 
+    /* Chart fills all space above caption strip (set in JS) */
     #chart {
-      width: 100%;
-      overflow: hidden;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
     }
 
+    /* Caption fixed at bottom */
     #caption {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
       box-sizing: border-box;
-      width: 100%;
-      padding: 8px 0 0 0;
-      font-family: var(--site-font);
-      font-size: 16px;
-      line-height: 1.3;
-      color: #111;
-      text-align: center;
+      background: #fff;
+      color: #222;
+      padding: 10px 16px 12px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    @media (max-width: 480px) {
+      #caption {
+        font-size: 16px;
+        padding: 10px 14px 12px;
+      }
     }
   </style>
-
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 
 <body>
   <div id="wrap">
-    <div id="chart" aria-label="Stacked bar chart of Long COVID symptom severity by gender"></div>
+    <div id="chart"></div>
     <div id="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
   </div>
 
@@ -58,10 +64,12 @@
     google.charts.load('current', { packages: ['corechart'] });
     google.charts.setOnLoadCallback(init);
 
-    let chart, data, options;
-    let resizeTimer = null;
+    let chart, data, ro;
 
     function init() {
+      chart = new google.visualization.ColumnChart(document.getElementById('chart'));
+
+      /* Chart 2 values (corrected: Cis Men "No Response" = 66) */
       data = google.visualization.arrayToDataTable([
         ['Gender', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
         ['Trans People', 42, 14, 3, 40],
@@ -70,116 +78,90 @@
         ['Cis Men',      9, 20, 6, 66]
       ]);
 
-      chart = new google.visualization.ColumnChart(document.getElementById('chart'));
-
-      // IMPORTANT:
-      // - Tooltips flicker if the chart is constantly re-drawn (resize loops) or animated.
-      // - We debounce resize re-draws and disable animation.
-      window.addEventListener('resize', () => {
-        window.clearTimeout(resizeTimer);
-        resizeTimer = window.setTimeout(draw, 150);
-      }, { passive: true });
-
       draw();
+
+      /* Resize redraw without animation to reduce tooltip flicker */
+      ro = new ResizeObserver(() => draw());
+      ro.observe(document.body);
+
+      window.addEventListener('orientationchange', () => setTimeout(draw, 150));
     }
 
     function draw() {
       const wrap = document.getElementById('wrap');
       const chartDiv = document.getElementById('chart');
-      const caption = document.getElementById('caption');
 
-      // Available width inside the iframe
-      const w = Math.max(320, wrap.clientWidth || document.documentElement.clientWidth || 320);
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
 
-      // Mobile vs desktop heuristic
-      const isMobile = window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+      const isMobile = w <= 600;
 
-      // Height budgeting (no scrollbars):
-      // We compute a total height that includes the chart (with title + legend) + the caption.
-      // Then we force the document to that exact height so the iframe doesn’t need scrollbars.
-      const captionH = Math.ceil(caption.getBoundingClientRect().height || 28);
+      /* Reserve space for caption so it never clips */
+      const captionH = isMobile ? 78 : 60;
+      chartDiv.style.bottom = captionH + 'px';
 
-      // Chart height tuned so:
-      // - Title is visible
-      // - Top tick "100" is visible
-      // - Legend is fully visible (not truncated)
-      // - No scrolling needed
-      //
-      // If you want it slightly shorter/taller, adjust these ratios by small amounts.
-      const chartH = isMobile
-        ? Math.round(w * 1.35)   // mobile needs more vertical room for title/legend
-        : Math.round(w * 0.72);  // desktop
+      /* Legend sizing (keeps labels visible) */
+      const legendFont = isMobile ? 12 : 13;
+      const legendLines = isMobile ? 2 : 1;
 
-      const totalH = chartH + captionH;
+      /* Title sizing */
+      const titleFont = isMobile ? 26 : 20;
 
-      // Hard stop: prevent scrollbars by matching body/wrap heights to content.
-      document.documentElement.style.height = totalH + 'px';
-      document.body.style.height = totalH + 'px';
-      wrap.style.height = totalH + 'px';
-      chartDiv.style.height = chartH + 'px';
-
-      options = {
-        height: chartH,
-        width: w,
+      const options = {
         backgroundColor: 'transparent',
+        isStacked: true,
+
+        /* Your established palette */
+        colors: ['#000F46', '#003C56', '#2C421C', '#2D2D2D'],
 
         title: 'Which genders are most likely to experience severe long COVID?',
         titleTextStyle: {
-          fontName: getComputedStyle(wrap).fontFamily || undefined,
-          fontSize: isMobile ? 26 : 18,
-          bold: true
+          fontSize: titleFont,
+          bold: true,
+          color: '#111'
         },
 
-        fontName: getComputedStyle(wrap).fontFamily || undefined,
+        /* No animation (helps tooltip stability) */
+        animation: { duration: 0 },
 
-        isStacked: true,
-        bar: { groupWidth: isMobile ? '60%' : '65%' },
+        width: w,
+        height: h - captionH,
 
-        // Make sure the "100" tick is visible (avoid clipping at the top)
-        vAxis: {
-          minValue: 0,
-          maxValue: 100,
-          viewWindow: { min: 0, max: 100 },
-          textStyle: { fontSize: isMobile ? 18 : 12 },
-          gridlines: { count: 6 },
-          minorGridlines: { count: 0 }
-        },
-
-        hAxis: {
-          textStyle: { fontSize: isMobile ? 20 : 12 }
-        },
-
-        legend: {
-          position: 'bottom',
-          alignment: 'center',
-          maxLines: 2,
-          textStyle: { fontSize: isMobile ? 18 : 12 }
-        },
-
-        // Chart area tuned so:
-        // - Title doesn’t push content into overflow
-        // - Top tick label isn't clipped
-        // - Legend has enough space
         chartArea: {
-          left: isMobile ? 70 : 60,
-          right: isMobile ? 20 : 20,
-          top: isMobile ? 90 : 55,
-          bottom: isMobile ? 95 : 65,
+          left: isMobile ? 52 : 60,
+          right: isMobile ? 18 : 18,
+          top: isMobile ? 72 : 58,
+          bottom: isMobile ? 100 : 82,
           width: '100%',
           height: '100%'
         },
 
-        tooltip: {
-          trigger: 'focus',
-          isHtml: false
+        legend: {
+          position: 'bottom',
+          maxLines: legendLines,
+          textStyle: {
+            fontSize: legendFont,
+            color: '#111'
+          }
         },
 
-        // Flicker-control: remove animation so tooltips aren’t fighting transitions
-        animation: { duration: 0 },
+        vAxis: {
+          viewWindow: { min: 0, max: 100 },
+          ticks: [0, 20, 40, 60, 80, 100],
+          gridlines: { color: '#d0d0d0' },
+          textStyle: { fontSize: 12, color: '#333' }
+        },
 
-        // Keep it clean and stable across browsers
-        focusTarget: 'category',
-        crosshair: { trigger: 'none' }
+        hAxis: {
+          textStyle: { fontSize: isMobile ? 14 : 12, color: '#222' }
+        },
+
+        tooltip: {
+          trigger: 'focus',
+          isHtml: true
+        },
+
+        focusTarget: 'category'
       };
 
       chart.draw(data, options);
