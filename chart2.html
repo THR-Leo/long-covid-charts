@@ -8,47 +8,102 @@
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    /* Prevent internal scrollbars inside the embed */
+    :root{
+      --c-severe:  #000F46;
+      --c-moderate:#003C56;
+      --c-minimal: #2C421C;
+      --c-none:    #2D2D2D;
+
+      /* Typography controls */
+      --title-size-desktop: 22px;
+      --title-size-mobile:  32px;
+
+      --legend-size-desktop: 14px;
+      --legend-size-mobile:  16px;
+
+      --caption-size-desktop: 14px;
+      --caption-size-mobile:  18px;
+    }
+
     html, body {
       height: 100%;
       margin: 0;
-      overflow: hidden;
-      background: #ffffff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    }
-
-    #wrap {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Chart fills all space above caption strip (set in JS) */
-    #chart {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-    }
-
-    /* Caption fixed at bottom */
-    #caption {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      box-sizing: border-box;
       background: #fff;
-      color: #222;
-      padding: 10px 16px 12px;
-      font-size: 18px;
-      line-height: 1.25;
+      overflow: hidden; /* prevents embed scrollbars */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      color: #111;
     }
 
-    @media (max-width: 480px) {
-      #caption {
-        font-size: 16px;
-        padding: 10px 14px 12px;
+    #wrap{
+      height: 100%;
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    /* HTML title (wraps instead of truncating) */
+    #chartTitle{
+      font-weight: 800;
+      line-height: 1.05;
+      padding: 14px 16px 6px;
+      font-size: var(--title-size-desktop);
+    }
+
+    /* Chart area grows/shrinks to fit remaining space */
+    #chart{
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 220px; /* safety */
+    }
+
+    /* HTML legend (wraps; never paginates; never cuts off) */
+    #legend{
+      padding: 8px 16px 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+      font-size: var(--legend-size-desktop);
+    }
+    .legItem{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .swatch{
+      width: 28px;
+      height: 14px;
+      border-radius: 2px;
+      flex: 0 0 auto;
+    }
+
+    /* Caption under legend */
+    #caption{
+      padding: 10px 16px 14px;
+      font-size: var(--caption-size-desktop);
+      line-height: 1.25;
+      color: #222;
+    }
+
+    @media (max-width: 600px){
+      #chartTitle{
+        font-size: var(--title-size-mobile);
+        padding: 18px 16px 8px;
+      }
+      #legend{
+        font-size: var(--legend-size-mobile);
+        padding: 10px 16px 8px;
+      }
+      .swatch{
+        width: 34px;
+        height: 16px;
+      }
+      #caption{
+        font-size: var(--caption-size-mobile);
+        padding: 12px 16px 16px;
       }
     }
   </style>
@@ -56,7 +111,17 @@
 
 <body>
   <div id="wrap">
+    <div id="chartTitle">Which genders are most likely to experience severe long COVID?</div>
+
     <div id="chart"></div>
+
+    <div id="legend" aria-label="Legend">
+      <span class="legItem"><span class="swatch" style="background: var(--c-severe)"></span>Severe Symptoms</span>
+      <span class="legItem"><span class="swatch" style="background: var(--c-moderate)"></span>Moderate Symptoms</span>
+      <span class="legItem"><span class="swatch" style="background: var(--c-minimal)"></span>Minimal Symptoms</span>
+      <span class="legItem"><span class="swatch" style="background: var(--c-none)"></span>No Response</span>
+    </div>
+
     <div id="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
   </div>
 
@@ -69,7 +134,7 @@
     function init() {
       chart = new google.visualization.ColumnChart(document.getElementById('chart'));
 
-      /* Chart 2 values (corrected: Cis Men "No Response" = 66) */
+      // Exact published values (including Cis Men "No Response" = 66)
       data = google.visualization.arrayToDataTable([
         ['Gender', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
         ['Trans People', 42, 14, 3, 40],
@@ -80,7 +145,7 @@
 
       draw();
 
-      /* Resize redraw without animation to reduce tooltip flicker */
+      // Redraw responsively without animations (helps tooltip stability)
       ro = new ResizeObserver(() => draw());
       ro.observe(document.body);
 
@@ -89,71 +154,57 @@
 
     function draw() {
       const wrap = document.getElementById('wrap');
-      const chartDiv = document.getElementById('chart');
+      const titleEl = document.getElementById('chartTitle');
+      const legendEl = document.getElementById('legend');
+      const captionEl = document.getElementById('caption');
 
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
 
+      // Compute remaining height for chart so nothing clips or scrolls
+      const reserved =
+        titleEl.offsetHeight +
+        legendEl.offsetHeight +
+        captionEl.offsetHeight;
+
+      const chartH = Math.max(220, h - reserved);
+
       const isMobile = w <= 600;
-
-      /* Reserve space for caption so it never clips */
-      const captionH = isMobile ? 78 : 60;
-      chartDiv.style.bottom = captionH + 'px';
-
-      /* Legend sizing (keeps labels visible) */
-      const legendFont = isMobile ? 12 : 13;
-      const legendLines = isMobile ? 2 : 1;
-
-      /* Title sizing */
-      const titleFont = isMobile ? 26 : 20;
 
       const options = {
         backgroundColor: 'transparent',
         isStacked: true,
 
-        /* Your established palette */
+        // Your palette, in the same series order as the data table
         colors: ['#000F46', '#003C56', '#2C421C', '#2D2D2D'],
 
-        title: 'Which genders are most likely to experience severe long COVID?',
-        titleTextStyle: {
-          fontSize: titleFont,
-          bold: true,
-          color: '#111'
-        },
+        // We are using HTML title + HTML legend, so disable both here
+        title: '',
+        legend: 'none',
 
-        /* No animation (helps tooltip stability) */
         animation: { duration: 0 },
 
         width: w,
-        height: h - captionH,
+        height: chartH,
 
         chartArea: {
-          left: isMobile ? 52 : 60,
-          right: isMobile ? 18 : 18,
-          top: isMobile ? 72 : 58,
-          bottom: isMobile ? 100 : 82,
+          left: isMobile ? 50 : 60,
+          right: isMobile ? 16 : 18,
+          top: isMobile ? 16 : 14,
+          bottom: isMobile ? 44 : 38,
           width: '100%',
           height: '100%'
-        },
-
-        legend: {
-          position: 'bottom',
-          maxLines: legendLines,
-          textStyle: {
-            fontSize: legendFont,
-            color: '#111'
-          }
         },
 
         vAxis: {
           viewWindow: { min: 0, max: 100 },
           ticks: [0, 20, 40, 60, 80, 100],
           gridlines: { color: '#d0d0d0' },
-          textStyle: { fontSize: 12, color: '#333' }
+          textStyle: { fontSize: isMobile ? 14 : 12, color: '#333' }
         },
 
         hAxis: {
-          textStyle: { fontSize: isMobile ? 14 : 12, color: '#222' }
+          textStyle: { fontSize: isMobile ? 18 : 12, color: '#222' }
         },
 
         tooltip: {
