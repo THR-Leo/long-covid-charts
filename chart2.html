@@ -1,94 +1,186 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Chart 2</title>
-<script src="https://www.gstatic.com/charts/loader.js"></script>
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: #ffffff;
-    font-family: Arial, Helvetica, sans-serif;
-  }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chart 2</title>
 
-  #chart_div {
-    width: 100%;
-  }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
-  .caption {
-    font-size: 14px;
-    margin-top: 8px;
-  }
-</style>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    html, body { margin:0; padding:0; background:#fff; }
+    body {
+      font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:#111;
+    }
+
+    .wrap { padding: 14px 12px 14px; }
+
+    .chart-title {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    #chart2 { width: 100%; }
+
+    /* Compact legend so everything fits without scrolling on mobile */
+    .legend {
+      margin: 8px 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      font-size: 14px;
+      color: #111;
+    }
+    .legend-item { display:inline-flex; align-items:center; gap:8px; }
+    .swatch { width:16px; height:12px; border-radius:2px; display:inline-block; }
+
+    .caption {
+      margin: 8px 0 0;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+    }
+
+    @media (max-width: 420px) {
+      .chart-title { font-size: 18px; }
+      .legend { font-size: 13px; }
+      .caption { font-size: 13px; }
+    }
+  </style>
+
+  <script>
+    function computeLeftPadding(w) {
+      // Keeps y-axis labels readable without wasting space
+      if (w < 360) return 60;
+      if (w < 420) return 64;
+      return 70;
+    }
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function drawChart2() {
+      const wrap = document.querySelector('.wrap');
+      const titleEl = document.getElementById('t');
+      const chartEl = document.getElementById('chart2');
+      const legendEl = document.getElementById('legend');
+      const captionEl = document.getElementById('cap');
+
+      const w = wrap.clientWidth || window.innerWidth || 700;
+      const left = computeLeftPadding(w);
+      const isMobile = w < 520;
+
+      // Preserve EXACT published values (unchanged)
+      const data = google.visualization.arrayToDataTable([
+        ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+        ['Trans People', 42, 14, 3, 40],
+        ['Other', 27, 39, 2, 32],
+        ['Cis Women', 10, 24, 9, 57],
+        ['Cis Men', 9, 20, 6, 66]
+      ]);
+
+      // --- Height logic: make title + chart + legend + caption fit without scroll ---
+      // Available viewport inside the iframe:
+      const viewportH = window.innerHeight || 700;
+
+      // Measure fixed elements:
+      const titleH = titleEl ? titleEl.getBoundingClientRect().height : 0;
+      const legendH = legendEl ? legendEl.getBoundingClientRect().height : 0;
+      const captionH = captionEl ? captionEl.getBoundingClientRect().height : 0;
+
+      // Wrap padding top+bottom (14 + 14 by default)
+      const wrapStyles = window.getComputedStyle(wrap);
+      const padTop = parseFloat(wrapStyles.paddingTop) || 0;
+      const padBot = parseFloat(wrapStyles.paddingBottom) || 0;
+
+      // Extra breathing room to avoid clipping at top/bottom
+      const safety = isMobile ? 8 : 12;
+
+      // Compute chart height so everything fits in the visible area
+      const availableForChart =
+        viewportH - (padTop + padBot) - titleH - legendH - captionH - safety;
+
+      // Clamp to sensible limits so the chart stays readable
+      const chartHeight = clamp(
+        Math.floor(availableForChart),
+        isMobile ? 260 : 320,
+        isMobile ? 420 : 520
+      );
+
+      const options = {
+        height: chartHeight,
+        backgroundColor: 'transparent',
+        legend: { position: 'none' },   // use our custom HTML legend
+        isStacked: true,
+        colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
+
+        vAxis: {
+          viewWindow: { min: 0, max: 100 },   // forces 0–100 and helps keep 100 visible
+          ticks: [0, 20, 40, 60, 80, 100],
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 12 : 14 }
+        },
+
+        hAxis: {
+          textStyle: { fontName: 'Source Sans 3', fontSize: isMobile ? 16 : 18 }
+        },
+
+        chartArea: {
+          left: left,
+          right: 16,
+          top: isMobile ? 16 : 12,      // ensures the "100" tick isn't clipped
+          bottom: isMobile ? 44 : 46    // space for x labels (Trans People split line)
+        },
+
+        bar: { groupWidth: isMobile ? '72%' : '68%' }
+      };
+
+      new google.visualization.ColumnChart(chartEl).draw(data, options);
+    }
+
+    function init() {
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(() => {
+        // Draw twice to ensure accurate height after fonts/layout settle
+        drawChart2();
+        requestAnimationFrame(drawChart2);
+      });
+
+      let t;
+      window.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          if (window.google && google.visualization) drawChart2();
+        }, 120);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </head>
+
 <body>
+  <div class="wrap">
+    <h2 class="chart-title" id="t">Which genders are most likely to experience severe long COVID?</h2>
+    <div id="chart2"></div>
 
-<div id="chart_div"></div>
-<div class="caption">
-  Share of people who had COVID and developed Long COVID, by gender, December 2022
-</div>
+    <div class="legend" id="legend" aria-label="Legend">
+      <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
+    </div>
 
-<script>
-google.charts.load('current', {'packages':['corechart']});
-google.charts.setOnLoadCallback(drawChart);
-
-function computeChartHeight(w) {
-  // Reduced mobile height so legend + caption fit without scrolling
-  if (w < 360) return 360;
-  if (w < 420) return 380;
-  if (w < 520) return 400;
-  return 520;
-}
-
-function drawChart() {
-
-  var data = google.visualization.arrayToDataTable([
-    ['Gender', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-    ['Trans People', 42, 14, 3, 40],
-    ['Other', 27, 39, 2, 32],
-    ['Cis Women', 10, 24, 9, 57],
-    ['Cis Men', 9, 20, 6, 66]
-  ]);
-
-  var width = window.innerWidth;
-  var height = computeChartHeight(width);
-  var isMobile = width < 520;
-
-  var options = {
-    isStacked: true,
-    width: '100%',
-    height: height,
-    backgroundColor: '#ffffff',
-    legend: {
-      position: 'bottom',
-      alignment: 'start'
-    },
-    chartArea: {
-      left: isMobile ? 70 : 90,
-      right: 20,
-      top: isMobile ? 30 : 22,
-      bottom: isMobile ? 58 : 62,
-      width: '100%',
-      height: '100%'
-    },
-    vAxis: {
-      minValue: 0,
-      maxValue: 100,
-      ticks: [0, 20, 40, 60, 80, 100]
-    },
-    hAxis: {
-      textStyle: { fontSize: isMobile ? 12 : 14 }
-    },
-    colors: ['#001a57', '#0c4b5f', '#2f4f1f', '#333333']
-  };
-
-  var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-  chart.draw(data, options);
-}
-
-window.addEventListener('resize', drawChart);
-</script>
-
+    <div class="caption" id="cap">
+      Share of people who had COVID and developed Long COVID, by gender, December 2022
+    </div>
+  </div>
 </body>
 </html>
