@@ -12,143 +12,216 @@
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 
 <style>
-html, body { margin:0; padding:0; background:#fff; }
+  html, body { margin:0; padding:0; background:#fff; }
+  body {
+    font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    color:#111;
+  }
 
-body {
-  font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-  color:#111;
-}
+  /* Keep the overall embed compact */
+  .wrap { padding: 10px 12px 10px; }
 
-.wrap { padding: 12px 12px 10px; }
+  .chart-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    line-height: 1.15;
+    font-weight: 700;
+    text-align: left;
+  }
 
-.chart-title {
-  margin: 0 0 8px;
-  font-size: 22px;
-  font-weight: 700;
-  text-align: left;
-}
+  #chart2 { width: 100%; }
 
-#chart2 { width: 100%; }
+  .legend {
+    margin: 8px 0 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2-column legend by default */
+    gap: 8px 14px;
+    align-items: center;
+    font-size: 14px;
+    color: #111;
+  }
 
-.legend {
-  margin: 8px 0 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  font-size: 14px;
-}
+  .legend-item { display:inline-flex; align-items:center; gap:6px; min-width: 0; }
+  .swatch { width:16px; height:10px; border-radius:2px; display:inline-block; flex: 0 0 auto; }
 
-.legend-item {
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
+  .caption {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: #333;
+    text-align: left;
+  }
 
-.swatch {
-  width:16px;
-  height:10px;
-  border-radius:2px;
-  display:inline-block;
-}
-
-.caption {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color:#333;
-  text-align:left;
-}
-
-@media (max-width: 520px) {
-  .chart-title { font-size: 18px; }
-  .legend { font-size: 13px; }
-  .caption { font-size: 13px; }
-}
+  @media (max-width: 520px) {
+    .wrap { padding: 8px 12px 8px; }
+    .chart-title { font-size: 18px; margin-bottom: 6px; }
+    .legend { font-size: 12px; gap: 6px 12px; margin: 6px 0 6px; }
+    .swatch { width:14px; height:9px; }
+    .caption { font-size: 12px; margin-top: 6px; }
+  }
 </style>
 
 <script>
-google.charts.load('current', { packages: ['corechart'] });
-google.charts.setOnLoadCallback(drawChart);
+  google.charts.load('current', { packages: ['corechart'] });
+  google.charts.setOnLoadCallback(init);
 
-function drawChart() {
+  function dataTable() {
+    // DATA UNCHANGED
+    return google.visualization.arrayToDataTable([
+      ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+      ['Trans People', 42, 14, 3, 40],
+      ['Other', 27, 39, 2, 32],
+      ['Cis Women', 10, 24, 9, 57],
+      ['Cis Men', 9, 20, 6, 66]
+    ]);
+  }
 
-  const container = document.getElementById('chart2');
-  const width = container.parentElement.clientWidth || 700;
-  const isMobile = width < 520;
+  function measureOuterHeights() {
+    const wrap = document.querySelector('.wrap');
+    const title = document.getElementById('title');
+    const legend = document.getElementById('legend');
+    const caption = document.getElementById('caption');
 
-  const data = google.visualization.arrayToDataTable([
-    ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-    ['Trans People', 42, 14, 3, 40],
-    ['Other', 27, 39, 2, 32],
-    ['Cis Women', 10, 24, 9, 57],
-    ['Cis Men', 9, 20, 6, 66]
-  ]);
+    // Force layout to be up to date
+    const wrapStyles = window.getComputedStyle(wrap);
+    const padTop = parseFloat(wrapStyles.paddingTop) || 0;
+    const padBottom = parseFloat(wrapStyles.paddingBottom) || 0;
 
-  const options = {
+    const titleH = title.getBoundingClientRect().height;
+    const legendH = legend.getBoundingClientRect().height;
+    const captionH = caption.getBoundingClientRect().height;
 
-    height: isMobile ? 440 : 420,
-    isStacked: true,
-    legend: { position: 'none' },
-    backgroundColor: 'transparent',
+    // Include margins that affect flow (we use margin on elements, so count them too)
+    const titleMarginBottom = parseFloat(window.getComputedStyle(title).marginBottom) || 0;
+    const legendMarginTop = parseFloat(window.getComputedStyle(legend).marginTop) || 0;
+    const legendMarginBottom = parseFloat(window.getComputedStyle(legend).marginBottom) || 0;
+    const captionMarginTop = parseFloat(window.getComputedStyle(caption).marginTop) || 0;
 
-    colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
+    return {
+      padTop, padBottom,
+      titleH, titleMarginBottom,
+      legendH, legendMarginTop, legendMarginBottom,
+      captionH, captionMarginTop
+    };
+  }
 
-    hAxis: {
-      minValue: 0,
-      maxValue: 100,
-      ticks: [0,20,40,60,80,100],
-      textStyle: {
-        fontName: 'Source Sans 3',
-        fontSize: 12   // ← reduced
+  function computeChartHeight() {
+    const container = document.getElementById('chart2');
+    const w = container.parentElement.clientWidth || 700;
+    const isMobile = w < 520;
+
+    // In Wix embeds, this is effectively the iframe height on mobile/desktop
+    const viewportH = (window.visualViewport && window.visualViewport.height)
+      ? window.visualViewport.height
+      : window.innerHeight;
+
+    const m = measureOuterHeights();
+
+    // Total non-chart vertical space
+    const nonChart =
+      m.padTop + m.padBottom +
+      m.titleH + m.titleMarginBottom +
+      m.legendMarginTop + m.legendH + m.legendMarginBottom +
+      m.captionMarginTop + m.captionH;
+
+    // Small safety buffer to avoid 1–2px rounding causing scroll
+    const safety = isMobile ? 8 : 10;
+
+    // Chart height is whatever is left
+    let h = Math.floor(viewportH - nonChart - safety);
+
+    // Reasonable lower bound so chart remains readable
+    const minH = isMobile ? 260 : 280;
+    if (h < minH) h = minH;
+
+    return { height: h, isMobile };
+  }
+
+  function drawChart() {
+    const el = document.getElementById('chart2');
+    const { height, isMobile } = computeChartHeight();
+
+    const options = {
+      height: height,
+      isStacked: true,
+      legend: { position: 'none' },
+      backgroundColor: 'transparent',
+      colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
+
+      // Values axis (vertical) — ensure 100 is inside the view window
+      vAxis: {
+        viewWindow: { min: 0, max: 100 },
+        ticks: [0, 20, 40, 60, 80, 100],
+        textStyle: {
+          fontName: 'Source Sans 3',
+          fontSize: isMobile ? 12 : 13
+        }
+      },
+
+      // Category labels (horizontal)
+      hAxis: {
+        textStyle: {
+          fontName: 'Source Sans 3',
+          fontSize: isMobile ? 12 : 12
+        }
+      },
+
+      bar: { groupWidth: isMobile ? '66%' : '60%' },
+
+      // Key part: give the chart a little top room so “100” is not clipped,
+      // but without increasing total embed height (we compute height from viewport).
+      chartArea: {
+        left: 44,
+        right: 12,
+        top: 18,              // prevents clipping of the top tick label
+        bottom: isMobile ? 40 : 44
       }
-    },
+    };
 
-    vAxis: {
-      textStyle: {
-        fontName: 'Source Sans 3',
-        fontSize: isMobile ? 12 : 13
-      }
-    },
+    new google.visualization.ColumnChart(el).draw(dataTable(), options);
+  }
 
-    bar: { groupWidth: isMobile ? '70%' : '60%' },
+  function init() {
+    // Draw once fonts/layout settle, then redraw on resize
+    const redraw = () => {
+      // Two-pass draw helps when legend/caption wrapping changes after first paint
+      drawChart();
+      setTimeout(drawChart, 60);
+    };
 
-    chartArea: {
-      left: 55,
-      right: 16,
-      top: 10,
-      bottom: 45
+    redraw();
+
+    let t;
+    window.addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(redraw, 120);
+    });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = setTimeout(redraw, 120);
+      });
     }
-
-  };
-
-  new google.visualization.ColumnChart(container).draw(data, options);
-}
-
-window.addEventListener('resize', function() {
-  drawChart();
-});
+  }
 </script>
 </head>
 
 <body>
-<div class="wrap">
+  <div class="wrap">
+    <h2 class="chart-title" id="title">Which genders are most likely to experience severe long COVID?</h2>
 
-  <h2 class="chart-title">
-    Which genders are most likely to experience severe long COVID?
-  </h2>
+    <div id="chart2"></div>
 
-  <div id="chart2"></div>
+    <div class="legend" id="legend" aria-label="Legend">
+      <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
+    </div>
 
-  <div class="legend">
-    <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
-    <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
-    <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
-    <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
+    <div class="caption" id="caption">
+      Share of people who had COVID and developed Long COVID, by gender, December 2022
+    </div>
   </div>
-
-  <div class="caption">
-    Share of people who had COVID and developed Long COVID, by gender, December 2022
-  </div>
-
-</div>
 </body>
 </html>
