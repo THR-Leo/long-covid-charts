@@ -1,232 +1,227 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chart 2</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chart 2</title>
 
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <style>
-    :root{
-      --c-severe:  #000F46;
-      --c-moderate:#003C56;
-      --c-minimal: #2C421C;
-      --c-none:    #2D2D2D;
+<script src="https://www.gstatic.com/charts/loader.js"></script>
 
-      /* Desktop */
-      --title-size-desktop: 22px;
-      --legend-size-desktop: 14px;
-      --caption-size-desktop: 14px;
+<style>
+  html, body { margin:0; padding:0; background:#fff; }
+  body {
+    font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    color:#111;
+  }
 
-      /* Mobile (reduced vs previous) */
-      --title-size-mobile: 24px;
-      --legend-size-mobile: 15px;
-      --caption-size-mobile: 16px;
-    }
+  /* Keep the overall embed compact */
+  .wrap { padding: 10px 12px 10px; }
 
-    html, body {
-      margin: 0;
-      background: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-      color: #111;
-    }
+  .chart-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    line-height: 1.15;
+    font-weight: 700;
+    text-align: left;
+  }
 
-    /* IMPORTANT:
-       Keep the embed from creating its own scrollbars, but still allow the layout to fit.
-       If the Wix embed element is shorter than the content, Wix will clip no matter what.
-       This code’s job is to minimise height on mobile and prevent overlaps. */
-    body { overflow: hidden; }
+  #chart2 { width: 100%; }
 
-    #wrap{
-      height: 100vh;         /* match iframe viewport */
-      width: 100%;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-    }
+  .legend {
+    margin: 8px 0 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2-column legend by default */
+    gap: 8px 14px;
+    align-items: center;
+    font-size: 14px;
+    color: #111;
+  }
 
-    #chartTitle{
-      font-weight: 800;
-      line-height: 1.08;
-      padding: 12px 14px 6px;
-      font-size: var(--title-size-desktop);
-    }
+  .legend-item { display:inline-flex; align-items:center; gap:6px; min-width: 0; }
+  .swatch { width:16px; height:10px; border-radius:2px; display:inline-block; flex: 0 0 auto; }
 
-    /* Chart container: JS will set an explicit pixel height on every draw */
-    #chart{
-      width: 100%;
-      flex: 0 0 auto;
-    }
+  .caption {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: #333;
+    text-align: left;
+  }
 
-    /* Desktop legend (inline wrap) */
-    #legend{
-      padding: 8px 14px 6px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 16px;
-      align-items: center;
-      font-size: var(--legend-size-desktop);
-    }
+  @media (max-width: 520px) {
+    .wrap { padding: 8px 12px 8px; }
+    .chart-title { font-size: 18px; margin-bottom: 6px; }
+    .legend { font-size: 12px; gap: 6px 12px; margin: 6px 0 6px; }
+    .swatch { width:14px; height:9px; }
+    .caption { font-size: 12px; margin-top: 6px; }
+  }
+</style>
 
-    .legItem{
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      white-space: nowrap;
-    }
-    .swatch{
-      width: 26px;
-      height: 12px;
-      border-radius: 2px;
-      flex: 0 0 auto;
-    }
+<script>
+  google.charts.load('current', { packages: ['corechart'] });
+  google.charts.setOnLoadCallback(init);
 
-    #caption{
-      padding: 8px 14px 12px;
-      font-size: var(--caption-size-desktop);
-      line-height: 1.25;
-      color: #222;
-    }
+  function dataTable() {
+    // DATA UNCHANGED
+    return google.visualization.arrayToDataTable([
+      ['Group', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
+      ['Trans People', 42, 14, 3, 40],
+      ['Other', 27, 39, 2, 32],
+      ['Cis Women', 10, 24, 9, 57],
+      ['Cis Men', 9, 20, 6, 66]
+    ]);
+  }
 
-    @media (max-width: 600px){
-      #chartTitle{
-        font-size: var(--title-size-mobile);
-        padding: 10px 14px 4px;
+  function measureOuterHeights() {
+    const wrap = document.querySelector('.wrap');
+    const title = document.getElementById('title');
+    const legend = document.getElementById('legend');
+    const caption = document.getElementById('caption');
+
+    // Force layout to be up to date
+    const wrapStyles = window.getComputedStyle(wrap);
+    const padTop = parseFloat(wrapStyles.paddingTop) || 0;
+    const padBottom = parseFloat(wrapStyles.paddingBottom) || 0;
+
+    const titleH = title.getBoundingClientRect().height;
+    const legendH = legend.getBoundingClientRect().height;
+    const captionH = caption.getBoundingClientRect().height;
+
+    // Include margins that affect flow (we use margin on elements, so count them too)
+    const titleMarginBottom = parseFloat(window.getComputedStyle(title).marginBottom) || 0;
+    const legendMarginTop = parseFloat(window.getComputedStyle(legend).marginTop) || 0;
+    const legendMarginBottom = parseFloat(window.getComputedStyle(legend).marginBottom) || 0;
+    const captionMarginTop = parseFloat(window.getComputedStyle(caption).marginTop) || 0;
+
+    return {
+      padTop, padBottom,
+      titleH, titleMarginBottom,
+      legendH, legendMarginTop, legendMarginBottom,
+      captionH, captionMarginTop
+    };
+  }
+
+  function computeChartHeight() {
+    const container = document.getElementById('chart2');
+    const w = container.parentElement.clientWidth || 700;
+    const isMobile = w < 520;
+
+    // In Wix embeds, this is effectively the iframe height on mobile/desktop
+    const viewportH = (window.visualViewport && window.visualViewport.height)
+      ? window.visualViewport.height
+      : window.innerHeight;
+
+    const m = measureOuterHeights();
+
+    // Total non-chart vertical space
+    const nonChart =
+      m.padTop + m.padBottom +
+      m.titleH + m.titleMarginBottom +
+      m.legendMarginTop + m.legendH + m.legendMarginBottom +
+      m.captionMarginTop + m.captionH;
+
+    // Small safety buffer to avoid 1–2px rounding causing scroll
+    const safety = isMobile ? 8 : 10;
+
+    // Chart height is whatever is left
+    let h = Math.floor(viewportH - nonChart - safety);
+
+    // Reasonable lower bound so chart remains readable
+    const minH = isMobile ? 260 : 280;
+    if (h < minH) h = minH;
+
+    return { height: h, isMobile };
+  }
+
+  function drawChart() {
+    const el = document.getElementById('chart2');
+    const { height, isMobile } = computeChartHeight();
+
+    const options = {
+      height: height,
+      isStacked: true,
+      legend: { position: 'none' },
+      backgroundColor: 'transparent',
+      colors: ['#000F46', '#003C55', '#2C421D', '#2D2D2D'],
+
+      // Values axis (vertical) — ensure 100 is inside the view window
+      vAxis: {
+        viewWindow: { min: 0, max: 100 },
+        ticks: [0, 20, 40, 60, 80, 100],
+        textStyle: {
+          fontName: 'Source Sans 3',
+          fontSize: isMobile ? 12 : 13
+        }
+      },
+
+      // Category labels (horizontal)
+      hAxis: {
+        textStyle: {
+          fontName: 'Source Sans 3',
+          fontSize: isMobile ? 12 : 12
+        }
+      },
+
+      bar: { groupWidth: isMobile ? '66%' : '60%' },
+
+      // Key part: give the chart a little top room so “100” is not clipped,
+      // but without increasing total embed height (we compute height from viewport).
+      chartArea: {
+        left: 44,
+        right: 12,
+        top: 18,              // prevents clipping of the top tick label
+        bottom: isMobile ? 40 : 44
       }
+    };
 
-      /* Mobile legend becomes a 2-column grid to reduce height and avoid paging/cutoff */
-      #legend{
-        font-size: var(--legend-size-mobile);
-        padding: 6px 14px 6px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        column-gap: 14px;
-        row-gap: 10px;
-        align-items: start;
-      }
+    new google.visualization.ColumnChart(el).draw(dataTable(), options);
+  }
 
-      .swatch{
-        width: 22px;
-        height: 12px;
-      }
+  function init() {
+    // Draw once fonts/layout settle, then redraw on resize
+    const redraw = () => {
+      // Two-pass draw helps when legend/caption wrapping changes after first paint
+      drawChart();
+      setTimeout(drawChart, 60);
+    };
 
-      #caption{
-        font-size: var(--caption-size-mobile);
-        padding: 8px 14px 12px;
-      }
+    redraw();
+
+    let t;
+    window.addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(redraw, 120);
+    });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = setTimeout(redraw, 120);
+      });
     }
-  </style>
+  }
+</script>
 </head>
 
 <body>
-  <div id="wrap">
-    <div id="chartTitle">Which genders are most likely to experience severe long COVID?</div>
+  <div class="wrap">
+    <h2 class="chart-title" id="title">Which genders are most likely to experience severe long COVID?</h2>
 
-    <div id="chart"></div>
+    <div id="chart2"></div>
 
-    <div id="legend" aria-label="Legend">
-      <span class="legItem"><span class="swatch" style="background: var(--c-severe)"></span>Severe Symptoms</span>
-      <span class="legItem"><span class="swatch" style="background: var(--c-moderate)"></span>Moderate Symptoms</span>
-      <span class="legItem"><span class="swatch" style="background: var(--c-minimal)"></span>Minimal Symptoms</span>
-      <span class="legItem"><span class="swatch" style="background: var(--c-none)"></span>No Response</span>
+    <div class="legend" id="legend" aria-label="Legend">
+      <span class="legend-item"><span class="swatch" style="background:#000F46"></span>Severe Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#003C55"></span>Moderate Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2C421D"></span>Minimal Symptoms</span>
+      <span class="legend-item"><span class="swatch" style="background:#2D2D2D"></span>No Response</span>
     </div>
 
-    <div id="caption">Share of people who had COVID and developed Long COVID, by gender, December 2022</div>
+    <div class="caption" id="caption">
+      Share of people who had COVID and developed Long COVID, by gender, December 2022
+    </div>
   </div>
-
-  <script>
-    google.charts.load('current', { packages: ['corechart'] });
-    google.charts.setOnLoadCallback(init);
-
-    let chart, data, ro;
-
-    function init() {
-      chart = new google.visualization.ColumnChart(document.getElementById('chart'));
-
-      // Exact published values (including Cis Men "No Response" = 66)
-      data = google.visualization.arrayToDataTable([
-        ['Gender', 'Severe Symptoms', 'Moderate Symptoms', 'Minimal Symptoms', 'No Response'],
-        ['Trans People', 42, 14, 3, 40],
-        ['Other',       27, 39, 2, 32],
-        ['Cis Women',   10, 24, 9, 57],
-        ['Cis Men',      9, 20, 6, 66]
-      ]);
-
-      draw();
-
-      // Redraw on resize/orientation changes
-      ro = new ResizeObserver(() => draw());
-      ro.observe(document.documentElement);
-
-      window.addEventListener('orientationchange', () => setTimeout(draw, 200));
-    }
-
-    function draw() {
-      const wrap = document.getElementById('wrap');
-      const titleEl = document.getElementById('chartTitle');
-      const legendEl = document.getElementById('legend');
-      const captionEl = document.getElementById('caption');
-      const chartEl = document.getElementById('chart');
-
-      const w = wrap.clientWidth;
-      const h = wrap.clientHeight;
-
-      // Reserve exactly what the HTML title/legend/caption actually take up
-      const reserved =
-        titleEl.offsetHeight +
-        legendEl.offsetHeight +
-        captionEl.offsetHeight;
-
-      // Remaining height for the chart
-      const chartH = Math.max(180, h - reserved);
-
-      // CRITICAL FIX:
-      // Set the container height explicitly so iOS/Safari cannot let the SVG overlap below.
-      chartEl.style.height = chartH + 'px';
-
-      const isMobile = w <= 600;
-
-      const options = {
-        backgroundColor: 'transparent',
-        isStacked: true,
-        colors: ['#000F46', '#003C56', '#2C421C', '#2D2D2D'],
-
-        // Using HTML title + HTML legend
-        title: '',
-        legend: 'none',
-
-        animation: { duration: 0 },
-
-        width: w,
-        height: chartH,
-
-        chartArea: {
-          left: isMobile ? 44 : 60,
-          right: isMobile ? 12 : 18,
-          top: 10,
-          bottom: isMobile ? 42 : 36,
-          width: '100%',
-          height: '100%'
-        },
-
-        vAxis: {
-          viewWindow: { min: 0, max: 100 },
-          ticks: [0, 20, 40, 60, 80, 100],
-          gridlines: { color: '#d0d0d0' },
-          textStyle: { fontSize: isMobile ? 14 : 12, color: '#333' }
-        },
-
-        hAxis: {
-          textStyle: { fontSize: isMobile ? 16 : 12, color: '#222' }
-        },
-
-        tooltip: { trigger: 'focus', isHtml: true },
-        focusTarget: 'category'
-      };
-
-      chart.draw(data, options);
-    }
-  </script>
 </body>
 </html>
