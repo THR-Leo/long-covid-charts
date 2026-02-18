@@ -58,6 +58,20 @@
     .swatch { width:14px; height:9px; }
     .caption { font-size: 12px; margin-top: 6px; }
   }
+
+  /* --- Tooltip flicker fix (Wix/GitHub embed) ---
+     Prevent the Google Charts tooltip from affecting document height,
+     which can trigger iframe resize + chart redraw loops (flicker). */
+  .wrap { overflow: hidden; }
+  #chart2 { position: relative; overflow: hidden; }
+
+  /* Google Charts HTML tooltip */
+  .google-visualization-tooltip {
+    position: absolute !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
+  }
+
 </style>
 
 <script>
