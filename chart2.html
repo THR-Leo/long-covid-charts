@@ -14,59 +14,61 @@
       --c-minimal: #2C421C;
       --c-none:    #2D2D2D;
 
-      /* Typography controls */
+      /* Desktop */
       --title-size-desktop: 22px;
-      --title-size-mobile:  32px;
-
       --legend-size-desktop: 14px;
-      --legend-size-mobile:  16px;
-
       --caption-size-desktop: 14px;
-      --caption-size-mobile:  18px;
+
+      /* Mobile (reduced vs previous) */
+      --title-size-mobile: 24px;
+      --legend-size-mobile: 15px;
+      --caption-size-mobile: 16px;
     }
 
     html, body {
-      height: 100%;
       margin: 0;
       background: #fff;
-      overflow: hidden; /* prevents embed scrollbars */
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
       color: #111;
     }
 
+    /* IMPORTANT:
+       Keep the embed from creating its own scrollbars, but still allow the layout to fit.
+       If the Wix embed element is shorter than the content, Wix will clip no matter what.
+       This code’s job is to minimise height on mobile and prevent overlaps. */
+    body { overflow: hidden; }
+
     #wrap{
-      height: 100%;
+      height: 100vh;         /* match iframe viewport */
       width: 100%;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
     }
 
-    /* HTML title (wraps instead of truncating) */
     #chartTitle{
       font-weight: 800;
-      line-height: 1.05;
-      padding: 14px 16px 6px;
+      line-height: 1.08;
+      padding: 12px 14px 6px;
       font-size: var(--title-size-desktop);
     }
 
-    /* Chart area grows/shrinks to fit remaining space */
+    /* Chart container: JS will set an explicit pixel height on every draw */
     #chart{
       width: 100%;
-      flex: 1 1 auto;
-      min-height: 220px; /* safety */
+      flex: 0 0 auto;
     }
 
-    /* HTML legend (wraps; never paginates; never cuts off) */
+    /* Desktop legend (inline wrap) */
     #legend{
-      padding: 8px 16px 6px;
+      padding: 8px 14px 6px;
       display: flex;
       flex-wrap: wrap;
-      gap: 10px 18px;
+      gap: 8px 16px;
       align-items: center;
       font-size: var(--legend-size-desktop);
     }
+
     .legItem{
       display: inline-flex;
       align-items: center;
@@ -74,15 +76,14 @@
       white-space: nowrap;
     }
     .swatch{
-      width: 28px;
-      height: 14px;
+      width: 26px;
+      height: 12px;
       border-radius: 2px;
       flex: 0 0 auto;
     }
 
-    /* Caption under legend */
     #caption{
-      padding: 10px 16px 14px;
+      padding: 8px 14px 12px;
       font-size: var(--caption-size-desktop);
       line-height: 1.25;
       color: #222;
@@ -91,19 +92,28 @@
     @media (max-width: 600px){
       #chartTitle{
         font-size: var(--title-size-mobile);
-        padding: 18px 16px 8px;
+        padding: 10px 14px 4px;
       }
+
+      /* Mobile legend becomes a 2-column grid to reduce height and avoid paging/cutoff */
       #legend{
         font-size: var(--legend-size-mobile);
-        padding: 10px 16px 8px;
+        padding: 6px 14px 6px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 14px;
+        row-gap: 10px;
+        align-items: start;
       }
+
       .swatch{
-        width: 34px;
-        height: 16px;
+        width: 22px;
+        height: 12px;
       }
+
       #caption{
         font-size: var(--caption-size-mobile);
-        padding: 12px 16px 16px;
+        padding: 8px 14px 12px;
       }
     }
   </style>
@@ -145,11 +155,11 @@
 
       draw();
 
-      // Redraw responsively without animations (helps tooltip stability)
+      // Redraw on resize/orientation changes
       ro = new ResizeObserver(() => draw());
-      ro.observe(document.body);
+      ro.observe(document.documentElement);
 
-      window.addEventListener('orientationchange', () => setTimeout(draw, 150));
+      window.addEventListener('orientationchange', () => setTimeout(draw, 200));
     }
 
     function draw() {
@@ -157,28 +167,32 @@
       const titleEl = document.getElementById('chartTitle');
       const legendEl = document.getElementById('legend');
       const captionEl = document.getElementById('caption');
+      const chartEl = document.getElementById('chart');
 
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
 
-      // Compute remaining height for chart so nothing clips or scrolls
+      // Reserve exactly what the HTML title/legend/caption actually take up
       const reserved =
         titleEl.offsetHeight +
         legendEl.offsetHeight +
         captionEl.offsetHeight;
 
-      const chartH = Math.max(220, h - reserved);
+      // Remaining height for the chart
+      const chartH = Math.max(180, h - reserved);
+
+      // CRITICAL FIX:
+      // Set the container height explicitly so iOS/Safari cannot let the SVG overlap below.
+      chartEl.style.height = chartH + 'px';
 
       const isMobile = w <= 600;
 
       const options = {
         backgroundColor: 'transparent',
         isStacked: true,
-
-        // Your palette, in the same series order as the data table
         colors: ['#000F46', '#003C56', '#2C421C', '#2D2D2D'],
 
-        // We are using HTML title + HTML legend, so disable both here
+        // Using HTML title + HTML legend
         title: '',
         legend: 'none',
 
@@ -188,10 +202,10 @@
         height: chartH,
 
         chartArea: {
-          left: isMobile ? 50 : 60,
-          right: isMobile ? 16 : 18,
-          top: isMobile ? 16 : 14,
-          bottom: isMobile ? 44 : 38,
+          left: isMobile ? 44 : 60,
+          right: isMobile ? 12 : 18,
+          top: 10,
+          bottom: isMobile ? 42 : 36,
           width: '100%',
           height: '100%'
         },
@@ -204,14 +218,10 @@
         },
 
         hAxis: {
-          textStyle: { fontSize: isMobile ? 18 : 12, color: '#222' }
+          textStyle: { fontSize: isMobile ? 16 : 12, color: '#222' }
         },
 
-        tooltip: {
-          trigger: 'focus',
-          isHtml: true
-        },
-
+        tooltip: { trigger: 'focus', isHtml: true },
         focusTarget: 'category'
       };
 
